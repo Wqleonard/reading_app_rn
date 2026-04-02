@@ -47,6 +47,8 @@ PODS:
     - ExpoModulesCore
   - ExpoLinking (55.0.9):
     - ExpoModulesCore
+  - ExpoLocalization (55.0.9):
+    - ExpoModulesCore
   - ExpoLogBox (55.0.8):
     - React-Core
   - ExpoModulesCore (55.0.18):
@@ -83,6 +85,8 @@ PODS:
     - ExpoModulesCore
     - RNScreens
   - ExpoSplashScreen (55.0.13):
+    - ExpoModulesCore
+  - ExpoSQLite (55.0.11):
     - ExpoModulesCore
   - ExpoSymbols (55.0.5):
     - ExpoModulesCore
@@ -1955,6 +1959,28 @@ PODS:
     - React-utils (= 0.83.4)
     - ReactNativeDependencies
   - ReactNativeDependencies (0.83.4)
+  - RNCAsyncStorage (2.2.0):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - RNReanimated (4.2.1):
     - hermes-engine
     - RCTRequired
@@ -2171,11 +2197,13 @@ DEPENDENCIES:
   - ExpoImage (from `../node_modules/expo-image/ios`)
   - ExpoKeepAwake (from `../node_modules/expo-keep-awake/ios`)
   - ExpoLinking (from `../node_modules/expo-linking/ios`)
+  - ExpoLocalization (from `../node_modules/expo-localization/ios`)
   - "ExpoLogBox (from `../node_modules/@expo/log-box`)"
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - ExpoModulesJSI (from `../node_modules/expo-modules-core`)
   - ExpoRouter (from `../node_modules/expo-router/ios`)
   - ExpoSplashScreen (from `../node_modules/expo-splash-screen/ios`)
+  - ExpoSQLite (from `../node_modules/expo-sqlite/ios`)
   - ExpoSymbols (from `../node_modules/expo-symbols/ios`)
   - ExpoWebBrowser (from `../node_modules/expo-web-browser/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
@@ -2252,6 +2280,7 @@ DEPENDENCIES:
   - ReactCodegen (from `build/generated/ios/ReactCodegen`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - ReactNativeDependencies (from `../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`)
+  - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNWorklets (from `../node_modules/react-native-worklets`)
@@ -2288,6 +2317,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-keep-awake/ios"
   ExpoLinking:
     :path: "../node_modules/expo-linking/ios"
+  ExpoLocalization:
+    :path: "../node_modules/expo-localization/ios"
   ExpoLogBox:
     :path: "../node_modules/@expo/log-box"
   ExpoModulesCore:
@@ -2298,6 +2329,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-router/ios"
   ExpoSplashScreen:
     :path: "../node_modules/expo-splash-screen/ios"
+  ExpoSQLite:
+    :path: "../node_modules/expo-sqlite/ios"
   ExpoSymbols:
     :path: "../node_modules/expo-symbols/ios"
   ExpoWebBrowser:
@@ -2449,6 +2482,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   ReactNativeDependencies:
     :podspec: "../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec"
+  RNCAsyncStorage:
+    :path: "../node_modules/@react-native-async-storage/async-storage"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
@@ -2469,11 +2504,13 @@ SPEC CHECKSUMS:
   ExpoImage: 5132f85d49462dffa81684e266adf90b32561569
   ExpoKeepAwake: 55711a70fe88a41e793bbe28543c93cb47ff265d
   ExpoLinking: bb976d2110e788be8f0c0434b3e407307c32f0a9
+  ExpoLocalization: 188b2658fba77fd3abd136cc1da3a7c9e9b8a0a2
   ExpoLogBox: adb715d4d0882d0f2d6d4d37eaeda1db51b1f93f
   ExpoModulesCore: 546b540cc25fc0acc52c5026602607ab87ea3ca0
   ExpoModulesJSI: ac4e45951c63c45631bf7969cb621f82d1ed6330
   ExpoRouter: e1d7631825e77421c752b7316458245a07fe1b88
   ExpoSplashScreen: e3672db2d145e62208d4b761671f4fca1d4ef126
+  ExpoSQLite: db205f2389129272d6dcd4e599416125041c92dd
   ExpoSymbols: 0e00156bc2d2118be6838ae4755ceaa2bf00afe2
   ExpoWebBrowser: 7e5355c91ebb6213e1eee4c370f5578ce49fd612
   FBLazyVector: 061f518bbd81677ed8a8317e2ae60b8779495808
@@ -2552,6 +2589,7 @@ SPEC CHECKSUMS:
   ReactCodegen: 51f5a00e28b5ee93887a5c8f86928eaed3c690c5
   ReactCommon: f63857ae341c1f73b58bea001071acf306df0225
   ReactNativeDependencies: 2a4ade8c0dc8d1a19e0d97641325036692e698a2
+  RNCAsyncStorage: e85a99325df9eb0191a6ee2b2a842644c7eb29f4
   RNReanimated: 0de2f2ee429ff5e566104e177a69f58e9216668a
   RNScreens: 62b74ab28af2fcde74afafd00d7500df4289bab4
   RNWorklets: 69360224ddca4bd2b93c7f673fa063ebc32ba9a7

@@ -6,6 +6,9 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import '@/src/i18n';
+import { useAppStore } from '@/src/state/appStore';
+import { initDb } from '@/src/storage/db/client';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -24,6 +27,8 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+  const bootstrap = useAppStore((state) => state.bootstrap);
+  const bootstrapped = useAppStore((state) => state.bootstrapped);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
@@ -31,12 +36,26 @@ export default function RootLayout() {
   }, [error]);
 
   useEffect(() => {
-    if (loaded) {
+    if (loaded && bootstrapped) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [loaded, bootstrapped]);
 
-  if (!loaded) {
+  useEffect(() => {
+    let cancelled = false;
+    const runBootstrap = async () => {
+      await initDb();
+      if (!cancelled) {
+        await bootstrap();
+      }
+    };
+    runBootstrap();
+    return () => {
+      cancelled = true;
+    };
+  }, [bootstrap]);
+
+  if (!loaded || !bootstrapped) {
     return null;
   }
 

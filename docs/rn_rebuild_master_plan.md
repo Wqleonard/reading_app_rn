@@ -228,7 +228,7 @@ reading-app-rn/
   - 技术栈与映射决策
 
 ## Phase 1 - 工程骨架与基础设施
-- 状态：`todo`
+- 状态：`done`
 - 步骤：
   1. 建立 `src/` 分层目录
   2. 接入 `zustand`、`axios`、`i18next`、`expo-sqlite`、`AsyncStorage`
@@ -325,7 +325,7 @@ reading-app-rn/
 | 编号 | 任务 | 状态 | 备注 |
 |---|---|---|---|
 | T-001 | 完成 Flutter 基线审计 | done | 本文档已落地 |
-| T-002 | 建立 RN 基础设施（state/network/db/i18n） | todo | Phase 1 |
+| T-002 | 建立 RN 基础设施（state/network/db/i18n） | done | Phase 1 已完成（含网络错误模型与Repository层） |
 | T-003 | 故事 JSON 数据层迁移 | todo | Phase 2 |
 | T-004 | Tabs 四模块首版 | todo | Phase 3 |
 | T-005 | 故事详情 + 角色详情 | todo | Phase 4 |
