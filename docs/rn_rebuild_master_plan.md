@@ -273,7 +273,7 @@ reading-app-rn/
   - Story -> Character -> Chat / Reader 路径可走通
 
 ## Phase 5 - 阅读器核心能力
-- 状态：`todo`
+- 状态：`doing`
 - 步骤：
   1. 连续节点渲染（虚拟列表）
   2. 选择点渲染与跳转
@@ -329,7 +329,7 @@ reading-app-rn/
 | T-003 | 故事 JSON 数据层迁移 | done | 已完成 JSON 托管 + Story/branch_graph 解析器 + 页面接入验证 |
 | T-004 | Tabs 四模块首版 | done | 推荐状态机 + 广场分类/继续阅读 + 邂逅三态 + 我的三标签 |
 | T-005 | 故事详情 + 角色详情 | done | 已完成故事评论区、角色作品列表、互动/纯享阅读入口参数化 |
-| T-006 | 阅读器核心功能 | todo | Phase 5 |
+| T-006 | 阅读器核心功能 | doing | 已完成连续节点渲染/选择跳转/进度回写，设置面板与高光图待补 |
 | T-007 | 聊天与 AI | todo | Phase 6 |
 | T-008 | 性能与回归 | todo | Phase 7 |
 

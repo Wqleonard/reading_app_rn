@@ -1,5 +1,6 @@
 import { Link } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -35,9 +36,14 @@ export default function SquareScreen() {
   async function createDemoProgress() {
     await readingProgressRepository.upsert({
       storyId: 'story_001',
-      currentNodeId: 'node_003_main',
+      currentNodeId: 'node_009_choice2',
       choiceHistoryJson: JSON.stringify(['choice_001_save_emperor']),
-      visitedNodeIdsJson: JSON.stringify(['node_001', 'node_002_choice', 'node_003_main']),
+      visitedNodeIdsJson: JSON.stringify([
+        'node_001',
+        'node_002_choice',
+        'node_003_main',
+        'node_009_choice2',
+      ]),
       lastReadAtMs: Date.now(),
       readDuration: 360,
       scrollPosition: 420,
@@ -47,9 +53,20 @@ export default function SquareScreen() {
     await loadProgress();
   }
 
+  async function resetProgress() {
+    await readingProgressRepository.clearByStoryId('story_001');
+    await loadProgress();
+  }
+
   useEffect(() => {
     void loadProgress();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadProgress();
+    }, [])
+  );
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -100,6 +117,9 @@ export default function SquareScreen() {
           <Link href="/reader/story_001" style={styles.link}>
             {t('square.openReader')}
           </Link>
+          <Pressable style={styles.demoButton} onPress={() => void resetProgress()}>
+            <Text style={styles.demoButtonText}>{t('square.resetProgress')}</Text>
+          </Pressable>
         </View>
       ) : (
         <View style={styles.progressCard}>
