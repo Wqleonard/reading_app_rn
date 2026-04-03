@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Alert,
   Animated,
@@ -55,6 +56,15 @@ type ReaderSettings = {
 };
 
 const READER_SETTINGS_KEY = 'reader_settings_v1';
+const PANEL_CHAR_1_SOURCE = require('../../assets/story/reader_panel/panel_char_1.png');
+const PANEL_CHAR_2_SOURCE = require('../../assets/story/reader_panel/panel_char_2.png');
+const PANEL_LOCKED_SOURCE = require('../../assets/story/reader_panel/panel_locked_bg.png');
+const CHARACTER_AVATAR_SOURCE_BY_ID: Record<string, ImageSourcePropType> = {
+  story_001_char_002: require('../../assets/story/avatars/avatar_zhaobingru.png'),
+  story_001_char_003: require('../../assets/story/avatars/avatar_zhaobingcheng.png'),
+  story_001_char_004: require('../../assets/story/avatars/avatar_guard15.png'),
+};
+
 const DEFAULT_READER_SETTINGS: ReaderSettings = {
   fontSize: 18,
   lineHeight: 1.85,
@@ -98,6 +108,14 @@ function getReadableTextColor(backgroundColor: string): string {
   };
   const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
   return luminance > 0.5 ? '#111827' : '#ffffff';
+}
+
+function isEvenHash(text: string): boolean {
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash * 31 + text.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash) % 2 === 0;
 }
 
 type TrackSliderProps = {
@@ -519,10 +537,15 @@ export default function ReaderScreen() {
     const unlocked = story.mainCharacters
       .filter((item) => item.isInteracted)
       .slice(0, 6)
-      .map((item) => ({
+      .map((item, index) => ({
+        fallbackSource: isEvenHash(item.id) ? PANEL_CHAR_1_SOURCE : PANEL_CHAR_2_SOURCE,
         id: item.id,
+        isPrimary: index === 0,
         name: item.name,
-        imageUrl: item.avatar ?? '',
+        imageSource:
+          CHARACTER_AVATAR_SOURCE_BY_ID[item.id] ??
+          resolveStoryImageSource(item.avatar ?? '') ??
+          (isEvenHash(item.id) ? PANEL_CHAR_1_SOURCE : PANEL_CHAR_2_SOURCE),
         subText: t('reader.characterViewStory'),
         encounterText:
           typeof item.encounterCount === 'number' && item.encounterCount > 0
@@ -537,8 +560,10 @@ export default function ReaderScreen() {
     while (unlocked.length < 6) {
       unlocked.push({
         id: `locked_${unlocked.length}`,
+        isPrimary: false,
         name: '???',
-        imageUrl: 'assets/mock/我心归处是良人/images/reader_panel/panel_locked_bg.png',
+        imageSource: PANEL_LOCKED_SOURCE,
+        fallbackSource: PANEL_LOCKED_SOURCE,
         subText: t('reader.characterLocked'),
         encounterText: t('reader.characterEncounterW', { count: '3.5' }),
         unlocked: false,
@@ -1377,63 +1402,82 @@ export default function ReaderScreen() {
       {showToolbar && activePanel === 'characters' ? (
         <View style={[styles.characterPanel, { paddingBottom: insets.bottom + 8 }]}>
           <View style={styles.characterPanelTitleRow}>
-            <Text style={styles.branchPanelTitle}>{t('reader.characterOverview')}</Text>
-            <Text style={styles.branchPanelPercentText}>
-              {`${story.mainCharacters.filter((item) => item.isInteracted).length}/6`}
+            <Text style={styles.characterPanelTitle}>{t('reader.characterOverview')}</Text>
+            <Text style={styles.characterPanelCountText}>
+              {`${Math.min(6, story.mainCharacters.filter((item) => item.isInteracted).length)}/6`}
             </Text>
           </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.characterListScroll}
-          >
-            {characterCards.map((character) => {
-              const fallbackImage = character.unlocked
-                ? `assets/mock/我心归处是良人/images/reader_panel/${
-                    String(character.id).length % 2 === 0 ? 'panel_char_1.png' : 'panel_char_2.png'
-                  }`
-                : 'assets/mock/我心归处是良人/images/reader_panel/panel_locked_bg.png';
-              const imageSource =
-                resolveStoryImageSource(character.imageUrl) ??
-                resolveStoryImageSource(fallbackImage);
-              return (
-                <Pressable
-                  key={character.id}
-                  style={styles.characterCardItem}
-                  onPress={() => {
-                    if (!character.unlocked) {
-                      Alert.alert('', t('reader.characterLockedToast'));
-                      return;
-                    }
-                    router.push(`/character/${character.id}`);
-                  }}
-                >
-                  <View style={[styles.characterPoster, !character.unlocked && styles.characterPosterLocked]}>
-                    {imageSource ? (
-                      <Image source={imageSource} style={styles.characterPosterImage} resizeMode="cover" />
-                    ) : null}
-                    <View style={styles.characterPosterOverlay} />
-                    {!character.unlocked ? <View style={styles.characterPosterMask} /> : null}
-                    <View style={styles.characterPosterMetaRow}>
-                      <Ionicons name="heart" size={10} color="#fde047" />
-                      <Text style={styles.characterPosterMetaText}>{character.encounterText}</Text>
-                    </View>
-                    <Text style={[styles.characterPosterName, !character.unlocked && styles.characterPosterNameLocked]}>
-                      {character.name}
-                    </Text>
-                    {!character.unlocked ? (
-                      <View style={styles.characterPosterLockBadge}>
-                        <Ionicons name="lock-closed" size={18} color="#ffffff" />
+          <View style={styles.characterListWrap}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.characterListScroll}
+            >
+              {characterCards.map((character) => {
+                return (
+                  <Pressable
+                    key={character.id}
+                    style={styles.characterCardItem}
+                    onPress={() => {
+                      if (!character.unlocked) {
+                        Alert.alert('', t('reader.characterLockedToast'));
+                        return;
+                      }
+                      router.push(`/character/${character.id}`);
+                    }}
+                  >
+                    <View
+                      style={[
+                        styles.characterPoster,
+                        character.unlocked
+                          ? character.isPrimary
+                            ? styles.characterPosterPrimary
+                            : styles.characterPosterUnlocked
+                          : styles.characterPosterLocked,
+                      ]}
+                    >
+                      <Image
+                        source={character.imageSource}
+                        style={[
+                          styles.characterPosterImage,
+                          !character.unlocked && styles.characterPosterImageLocked,
+                        ]}
+                        resizeMode="cover"
+                      />
+                      {character.unlocked ? (
+                        <LinearGradient
+                          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.8)']}
+                          locations={[0, 0.5, 1]}
+                          style={styles.characterPosterOverlay}
+                        />
+                      ) : null}
+                      <View style={styles.characterPosterMetaRow}>
+                        <Ionicons name="heart" size={10} color="#fde047" />
+                        <Text style={styles.characterPosterMetaText}>{character.encounterText}</Text>
                       </View>
-                    ) : null}
-                  </View>
-                  <Text style={styles.characterPosterSubText} numberOfLines={1}>
-                    {character.subText}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+                      <Text style={[styles.characterPosterName, !character.unlocked && styles.characterPosterNameLocked]}>
+                        {character.name}
+                      </Text>
+                      {!character.unlocked ? (
+                        <View style={styles.characterPosterLockBadge}>
+                          <Ionicons name="lock-closed" size={30} color="#9ca3af" />
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text
+                      style={[
+                        styles.characterPosterSubText,
+                        !character.unlocked && styles.characterPosterSubTextLocked,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {character.subText}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
         </View>
       ) : null}
       <Modal
@@ -1930,14 +1974,19 @@ const styles = StyleSheet.create({
   },
   characterPanel: {
     position: 'absolute',
-    left: 12,
-    right: 12,
-    bottom: 106,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#ffffff',
-    padding: 12,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    borderTopWidth: 1,
+    borderColor: '#f3f4f6',
+    backgroundColor: '#f9fafb',
+    shadowColor: '#000000',
+    shadowOpacity: 0.05,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: -10 },
+    zIndex: 20,
   },
   branchPanelTitleRow: {
     marginTop: 14,
@@ -2024,53 +2073,69 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   characterPanelTitleRow: {
-    marginTop: 14,
+    paddingTop: 24,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
+  characterPanelTitle: {
+    color: '#1f2937',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  characterPanelCountText: {
+    color: '#9ca3af',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  characterListWrap: {
+    height: 261,
+  },
   characterListScroll: {
     paddingHorizontal: 20,
-    paddingBottom: 10,
     gap: 4,
   },
   characterCardItem: {
     width: 98,
-    marginRight: 4,
   },
   characterPoster: {
     width: 98,
     height: 214,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#fbbf24',
-    backgroundColor: '#f3f4f6',
+    borderColor: '#ffffff',
+    backgroundColor: 'transparent',
     overflow: 'hidden',
     shadowColor: '#000000',
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
+  },
+  characterPosterPrimary: {
+    borderColor: '#fde047',
+  },
+  characterPosterUnlocked: {
+    borderColor: '#ffffff',
   },
   characterPosterLocked: {
+    backgroundColor: '#f3f4f6',
     borderColor: '#ffffff',
   },
   characterPosterImage: {
     ...StyleSheet.absoluteFillObject,
   },
+  characterPosterImageLocked: {
+    opacity: 0.4,
+  },
   characterPosterOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.32)',
-  },
-  characterPosterMask: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.5)',
   },
   characterPosterMetaRow: {
     position: 'absolute',
-    left: 8,
-    bottom: 12,
+    left: 10,
+    bottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -2078,12 +2143,12 @@ const styles = StyleSheet.create({
   characterPosterMetaText: {
     color: '#fde047',
     fontSize: 8,
-    lineHeight: 10,
+    lineHeight: 14,
   },
   characterPosterName: {
     position: 'absolute',
-    left: 8,
-    bottom: 28,
+    left: 10,
+    bottom: 32,
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '700',
@@ -2097,11 +2162,9 @@ const styles = StyleSheet.create({
     left: '50%',
     top: '50%',
     marginLeft: -15,
-    marginTop: -15,
+    marginTop: -28,
     width: 30,
     height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2111,6 +2174,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     textAlign: 'center',
+  },
+  characterPosterSubTextLocked: {
+    color: '#9ca3af',
   },
   iconicModalRoot: {
     flex: 1,
