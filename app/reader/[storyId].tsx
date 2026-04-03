@@ -53,6 +53,36 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const clean = hex.replace('#', '').trim();
+  if (clean.length === 3) {
+    const r = parseInt(`${clean[0]}${clean[0]}`, 16);
+    const g = parseInt(`${clean[1]}${clean[1]}`, 16);
+    const b = parseInt(`${clean[2]}${clean[2]}`, 16);
+    return { r, g, b };
+  }
+  const normalized = clean.padEnd(6, '0').slice(0, 6);
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  return { r, g, b };
+}
+
+function withAlpha(hex: string, alpha: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${clamp(alpha, 0, 1)})`;
+}
+
+function getReadableTextColor(backgroundColor: string): string {
+  const { r, g, b } = hexToRgb(backgroundColor);
+  const toLinear = (channel: number) => {
+    const c = channel / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+  return luminance > 0.5 ? '#111827' : '#ffffff';
+}
+
 type TrackSliderProps = {
   value: number;
   min: number;
@@ -104,7 +134,20 @@ function TrackSlider(props: TrackSliderProps) {
           const t = nextLeft / Math.max(1, trackWidth - 20);
           draftValueRef.current = min + (max - min) * t;
         },
-        onPanResponderRelease: () => onChange(draftValueRef.current),
+        onPanResponderRelease: (event, gestureState) => {
+          if (trackWidth <= 0) return;
+          const isTap =
+            Math.abs(gestureState.dx) < 2 && Math.abs(gestureState.dy) < 2;
+          if (isTap) {
+            const touchX = clamp(event.nativeEvent.locationX, 0, trackWidth);
+            const tappedValue = min + (max - min) * (touchX / Math.max(1, trackWidth));
+            draftValueRef.current = tappedValue;
+            thumbX.setValue(getThumbLeftByValue(tappedValue, trackWidth));
+            onChange(tappedValue);
+            return;
+          }
+          onChange(draftValueRef.current);
+        },
         onPanResponderTerminate: () => onChange(draftValueRef.current),
       }),
     [max, min, onChange, thumbX, trackWidth]
@@ -425,6 +468,18 @@ export default function ReaderScreen() {
     if (!progressState) return null;
     return nodeMap.get(progressState.currentNodeId) ?? null;
   }, [nodeMap, progressState]);
+  const readerTextColor = useMemo(
+    () => getReadableTextColor(settings.backgroundColor),
+    [settings.backgroundColor]
+  );
+  const readerMutedTextColor = useMemo(
+    () => withAlpha(readerTextColor, 0.65),
+    [readerTextColor]
+  );
+  const readerBorderColor = useMemo(
+    () => withAlpha(readerTextColor, 0.18),
+    [readerTextColor]
+  );
   const effectiveMainlineOnly = routePureMode || settings.mainlineOnly;
   const isPanelOpen = showToolbar && activePanel !== null;
   const topBarHeight = insets.top + 48;
@@ -683,7 +738,7 @@ export default function ReaderScreen() {
               return (
                 <View key={node.id} style={styles.nodeCard}>
                   {showDebug ? (
-                    <Text style={styles.nodeDebugTitle}>
+                    <Text style={[styles.nodeDebugTitle, { color: readerMutedTextColor }]}>
                       {node.id} · {node.type}
                     </Text>
                   ) : null}
@@ -693,6 +748,7 @@ export default function ReaderScreen() {
                       {
                         fontSize: settings.fontSize,
                         lineHeight: settings.fontSize * settings.lineHeight,
+                        color: readerTextColor,
                       },
                     ]}
                   >
@@ -700,22 +756,42 @@ export default function ReaderScreen() {
                   </Text>
 
                   {node.type === 'choice' && node.choices && node.choices.length > 0 ? (
-                    <View style={styles.choiceBox}>
+                    <View
+                      style={[
+                        styles.choiceBox,
+                        {
+                          backgroundColor: settings.backgroundColor,
+                          borderColor: readerBorderColor,
+                        },
+                      ]}
+                    >
                       {!effectiveMainlineOnly ? (
                         <>
-                          <Text style={styles.choiceTitle}>{t('reader.choosePrompt')}</Text>
+                          <Text style={[styles.choiceTitle, { color: readerMutedTextColor }]}>
+                            {t('reader.choosePrompt')}
+                          </Text>
                           {node.choices.map((choice) => (
                             <Pressable
                               key={choice.id}
-                              style={styles.choiceButton}
+                              style={[
+                                styles.choiceButton,
+                                {
+                                  backgroundColor: settings.backgroundColor,
+                                  borderColor: readerBorderColor,
+                                },
+                              ]}
                               onPress={() => handleChoice(choice)}
                             >
-                              <Text style={styles.choiceText}>{choice.text}</Text>
+                              <Text style={[styles.choiceText, { color: readerTextColor }]}>
+                                {choice.text}
+                              </Text>
                             </Pressable>
                           ))}
                         </>
                       ) : (
-                        <Text style={styles.subtitle}>{t('reader.chooseHintPure')}</Text>
+                        <Text style={[styles.subtitle, { color: readerMutedTextColor }]}>
+                          {t('reader.chooseHintPure')}
+                        </Text>
                       )}
                     </View>
                   ) : null}
@@ -724,7 +800,9 @@ export default function ReaderScreen() {
             })}
 
             {currentNode?.type === 'ending' ? (
-              <Text style={styles.endingText}>{t('reader.endingReached')}</Text>
+              <Text style={[styles.endingText, { color: withAlpha(readerTextColor, 0.8) }]}>
+                {t('reader.endingReached')}
+              </Text>
             ) : null}
 
             {__DEV__ && showDebug ? (
@@ -756,14 +834,16 @@ export default function ReaderScreen() {
             {
               height: topBarHeight,
               paddingTop: insets.top,
+              backgroundColor: settings.backgroundColor,
+              borderColor: readerBorderColor,
             },
             !showToolbar && styles.toolbarHidden,
           ]}
         >
             <Pressable onPress={() => router.back()} hitSlop={10}>
-              <Ionicons name="chevron-back" size={24} color="#111827" />
+              <Ionicons name="chevron-back" size={24} color={readerTextColor} />
             </Pressable>
-            <Text style={styles.topToolbarTitle} numberOfLines={1}>
+            <Text style={[styles.topToolbarTitle, { color: readerTextColor }]} numberOfLines={1}>
               {story.title}
             </Text>
             <View style={styles.topToolbarRight}>
@@ -778,7 +858,7 @@ export default function ReaderScreen() {
                 </Pressable>
               ) : null}
               <Pressable onPress={() => void restartReading()} hitSlop={10}>
-                <Ionicons name="refresh" size={20} color="#111827" />
+                <Ionicons name="refresh" size={20} color={readerTextColor} />
               </Pressable>
             </View>
         </View>
@@ -790,6 +870,8 @@ export default function ReaderScreen() {
             {
               height: bottomBarHeight,
               paddingBottom: insets.bottom + 8,
+              backgroundColor: settings.backgroundColor,
+              borderColor: readerBorderColor,
             },
             !showToolbar && styles.toolbarHidden,
           ]}
@@ -801,8 +883,10 @@ export default function ReaderScreen() {
                 setActivePanel('branch');
               }}
             >
-              <Ionicons name="git-branch-outline" size={22} color="#111827" />
-              <Text style={styles.toolbarButtonText}>{t('reader.toolbarBranch')}</Text>
+              <Ionicons name="git-branch-outline" size={22} color={readerTextColor} />
+              <Text style={[styles.toolbarButtonText, { color: readerTextColor }]}>
+                {t('reader.toolbarBranch')}
+              </Text>
             </Pressable>
             <Pressable
               style={styles.toolbarButton}
@@ -811,8 +895,10 @@ export default function ReaderScreen() {
                 setActivePanel('characters');
               }}
             >
-              <Ionicons name="people-outline" size={22} color="#111827" />
-              <Text style={styles.toolbarButtonText}>{t('reader.toolbarCharacters')}</Text>
+              <Ionicons name="people-outline" size={22} color={readerTextColor} />
+              <Text style={[styles.toolbarButtonText, { color: readerTextColor }]}>
+                {t('reader.toolbarCharacters')}
+              </Text>
             </Pressable>
             <Pressable
               style={styles.toolbarButton}
@@ -821,8 +907,10 @@ export default function ReaderScreen() {
                 setShowSettings(true);
               }}
             >
-              <Ionicons name="settings-outline" size={22} color="#111827" />
-              <Text style={styles.toolbarButtonText}>{t('reader.toolbarSettings')}</Text>
+              <Ionicons name="settings-outline" size={22} color={readerTextColor} />
+              <Text style={[styles.toolbarButtonText, { color: readerTextColor }]}>
+                {t('reader.toolbarSettings')}
+              </Text>
             </Pressable>
         </View>
       </View>
@@ -1154,6 +1242,8 @@ const styles = StyleSheet.create({
   choiceButton: {
     borderRadius: 8,
     backgroundColor: '#2563eb',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 8,
