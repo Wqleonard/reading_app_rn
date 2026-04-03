@@ -1,11 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getStoryById } from '@/src/data/story/storyService';
 import type { StoryChoice, StoryNode, StoryWithNodes } from '@/src/data/story/types';
 import { readingProgressRepository } from '@/src/storage/db/repositories/readingProgressRepository';
+import { kv } from '@/src/storage/kv/kv';
 
 type ChoiceRecord = {
   nodeId: string;
@@ -17,6 +26,25 @@ type ReaderProgressState = {
   currentNodeId: string;
   choiceHistory: ChoiceRecord[];
   visitedNodeIds: string[];
+};
+
+type ReaderSettings = {
+  fontSize: number;
+  lineHeight: number;
+  horizontalPadding: number;
+  backgroundColor: string;
+  brightness: number;
+  mainlineOnly: boolean;
+};
+
+const READER_SETTINGS_KEY = 'reader_settings_v1';
+const DEFAULT_READER_SETTINGS: ReaderSettings = {
+  fontSize: 18,
+  lineHeight: 1.85,
+  horizontalPadding: 20,
+  backgroundColor: '#ffffff',
+  brightness: 1,
+  mainlineOnly: false,
 };
 
 function getNodeMap(story: StoryWithNodes): Map<string, StoryNode> {
@@ -66,6 +94,37 @@ function parseVisitedNodeIds(raw: string | null): string[] {
   } catch {
     return [];
   }
+}
+
+function normalizeReaderSettings(
+  raw: Partial<ReaderSettings> | null | undefined
+): ReaderSettings {
+  return {
+    fontSize:
+      typeof raw?.fontSize === 'number'
+        ? Math.min(28, Math.max(14, raw.fontSize))
+        : DEFAULT_READER_SETTINGS.fontSize,
+    lineHeight:
+      typeof raw?.lineHeight === 'number'
+        ? Math.min(2.4, Math.max(1.4, raw.lineHeight))
+        : DEFAULT_READER_SETTINGS.lineHeight,
+    horizontalPadding:
+      typeof raw?.horizontalPadding === 'number'
+        ? Math.min(36, Math.max(12, raw.horizontalPadding))
+        : DEFAULT_READER_SETTINGS.horizontalPadding,
+    backgroundColor:
+      typeof raw?.backgroundColor === 'string'
+        ? raw.backgroundColor
+        : DEFAULT_READER_SETTINGS.backgroundColor,
+    brightness:
+      typeof raw?.brightness === 'number'
+        ? Math.min(1, Math.max(0.35, raw.brightness))
+        : DEFAULT_READER_SETTINGS.brightness,
+    mainlineOnly:
+      typeof raw?.mainlineOnly === 'boolean'
+        ? raw.mainlineOnly
+        : DEFAULT_READER_SETTINGS.mainlineOnly,
+  };
 }
 
 function findChoiceRecord(
@@ -241,8 +300,10 @@ export default function ReaderScreen() {
     storyId: string;
     mode?: 'interactive' | 'pure';
   }>();
-  const pureMode = mode === 'pure';
+  const router = useRouter();
+  const routePureMode = mode === 'pure';
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const story = storyId ? getStoryById(storyId) : null;
   const nodeMap = useMemo(
     () => (story ? getNodeMap(story) : new Map<string, StoryNode>()),
@@ -256,7 +317,14 @@ export default function ReaderScreen() {
   const [progressState, setProgressState] = useState<ReaderProgressState | null>(
     null
   );
+  const [settings, setSettings] = useState<ReaderSettings>(DEFAULT_READER_SETTINGS);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showToolbar, setShowToolbar] = useState(false);
+  const [activePanel, setActivePanel] = useState<'settings' | 'branch' | 'characters' | null>(
+    null
+  );
   const [showDebug, setShowDebug] = useState(false);
+  const tapStartRef = useRef<{ x: number; y: number; ts: number } | null>(null);
   const [rawProgressDebug, setRawProgressDebug] = useState<{
     currentNodeId: string | null;
     choiceHistoryRaw: string | null;
@@ -271,12 +339,18 @@ export default function ReaderScreen() {
     if (!progressState) return null;
     return nodeMap.get(progressState.currentNodeId) ?? null;
   }, [nodeMap, progressState]);
+  const effectiveMainlineOnly = routePureMode || settings.mainlineOnly;
+  const topBarHeight = insets.top + 48;
+  const bottomBarHeight = insets.bottom + 72;
 
   useEffect(() => {
     let mounted = true;
     async function bootstrapReader() {
       if (!storyId || !story) return;
       setHydrated(false);
+      const savedSettings = await kv.getJson<Partial<ReaderSettings>>(READER_SETTINGS_KEY);
+      const normalizedSettings = normalizeReaderSettings(savedSettings);
+      setSettings(normalizedSettings);
       const row = await readingProgressRepository.getByStoryId(storyId);
       if (!mounted) return;
       setRawProgressDebug({
@@ -299,7 +373,12 @@ export default function ReaderScreen() {
         ),
       };
 
-      const built = buildContentFromProgress(story, nodeMap, baseProgress, pureMode);
+      const built = buildContentFromProgress(
+        story,
+        nodeMap,
+        baseProgress,
+        routePureMode || normalizedSettings.mainlineOnly
+      );
       setDisplayedNodeIds(built.displayedNodeIds);
       setProgressState(built.progress);
       setRestoredFromProgress(Boolean(row));
@@ -316,7 +395,7 @@ export default function ReaderScreen() {
     return () => {
       mounted = false;
     };
-  }, [nodeMap, pureMode, story, storyId]);
+  }, [nodeMap, routePureMode, story, storyId]);
 
   useEffect(() => {
     if (!hydrated || !story || !progressState) return;
@@ -349,6 +428,72 @@ export default function ReaderScreen() {
     });
   }, [hydrated, progressState, story]);
 
+  useEffect(() => {
+    void kv.setJson(READER_SETTINGS_KEY, settings);
+  }, [settings]);
+
+  useEffect(() => {
+    if (!hydrated || !story || !progressState) return;
+    const rebuilt = buildContentFromProgress(
+      story,
+      nodeMap,
+      progressState,
+      effectiveMainlineOnly
+    );
+    setDisplayedNodeIds(rebuilt.displayedNodeIds);
+    setProgressState(rebuilt.progress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveMainlineOnly]);
+
+  useEffect(() => {
+    if (!showToolbar) {
+      setShowSettings(false);
+      setActivePanel(null);
+    }
+  }, [showToolbar]);
+
+  function rollbackLastChoice() {
+    if (!story || !progressState || progressState.choiceHistory.length === 0) return;
+    const nextHistory = progressState.choiceHistory.slice(0, -1);
+    const rebuilt = buildContentFromProgress(
+      story,
+      nodeMap,
+      {
+        currentNodeId: story.startNodeId,
+        choiceHistory: nextHistory,
+        visitedNodeIds: [],
+      },
+      effectiveMainlineOnly
+    );
+    setDisplayedNodeIds(rebuilt.displayedNodeIds);
+    setProgressState(rebuilt.progress);
+  }
+
+  function handleReaderTouchStart(event: {
+    nativeEvent: { pageX: number; pageY: number };
+  }) {
+    tapStartRef.current = {
+      x: event.nativeEvent.pageX,
+      y: event.nativeEvent.pageY,
+      ts: Date.now(),
+    };
+  }
+
+  function handleReaderTouchEnd(event: {
+    nativeEvent: { pageX: number; pageY: number };
+  }) {
+    const start = tapStartRef.current;
+    tapStartRef.current = null;
+    if (!start) return;
+    const moveX = Math.abs(event.nativeEvent.pageX - start.x);
+    const moveY = Math.abs(event.nativeEvent.pageY - start.y);
+    const duration = Date.now() - start.ts;
+    const isTap = moveX < 8 && moveY < 8 && duration < 250;
+    if (isTap) {
+      setShowToolbar((prev) => !prev);
+    }
+  }
+
   async function restartReading() {
     if (!story) return;
     await readingProgressRepository.clearByStoryId(story.id);
@@ -357,7 +502,12 @@ export default function ReaderScreen() {
       choiceHistory: [],
       visitedNodeIds: [],
     };
-    const built = buildContentFromProgress(story, nodeMap, baseProgress, pureMode);
+    const built = buildContentFromProgress(
+      story,
+      nodeMap,
+      baseProgress,
+      effectiveMainlineOnly
+    );
     setDisplayedNodeIds(built.displayedNodeIds);
     setProgressState(built.progress);
     setRestoredFromProgress(false);
@@ -393,7 +543,7 @@ export default function ReaderScreen() {
       withoutChoiceNodes,
       nextProgress,
       choice.targetNodeId,
-      pureMode
+      effectiveMainlineOnly
     );
     setDisplayedNodeIds(loaded.displayedNodeIds);
     setProgressState(loaded.progress);
@@ -418,99 +568,384 @@ export default function ReaderScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{t('reader.title')}</Text>
-      <Text style={styles.subtitle}>
-        {t('reader.storyId')}: {story.id}
-      </Text>
-      <Text style={styles.subtitle}>
-        {t('reader.currentNode')}: {progressState.currentNodeId}
-      </Text>
-      <Text style={styles.subtitle}>
-        {t('reader.nodeType')}: {currentNode?.type ?? '-'}
-      </Text>
-      <Text style={styles.subtitle}>
-        {t('reader.choiceCount')}: {currentNode?.choices?.length ?? 0}
-      </Text>
-      <Text style={styles.subtitle}>
-        {t('reader.mode')}: {pureMode ? t('reader.modePure') : t('reader.modeInteractive')}
-      </Text>
-      <Text style={styles.subtitle}>
-        {t('reader.progressPercent')}: {progressPercentage}%
-      </Text>
-      <Text style={styles.subtitle}>
-        {t('reader.restoredFrom')}:{' '}
-        {restoredFromProgress ? t('reader.restoredProgress') : t('reader.restoredStart')}
-      </Text>
+    <View style={[styles.container, { backgroundColor: settings.backgroundColor }]}>
+      <View style={styles.readerLayer}>
+        <ScrollView
+          style={styles.container}
+          onTouchStart={handleReaderTouchStart}
+          onTouchEnd={handleReaderTouchEnd}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingHorizontal: settings.horizontalPadding,
+              // Keep reader content layout stable; toolbars are absolute overlays.
+              paddingTop: insets.top + 14,
+              paddingBottom: insets.bottom + 30,
+            },
+          ]}
+        >
+            {displayedNodeIds.map((nodeId) => {
+              const node = nodeMap.get(nodeId);
+              if (!node) return null;
+              return (
+                <View key={node.id} style={styles.nodeCard}>
+                  {showDebug ? (
+                    <Text style={styles.nodeDebugTitle}>
+                      {node.id} · {node.type}
+                    </Text>
+                  ) : null}
+                  <Text
+                    style={[
+                      styles.nodeContent,
+                      {
+                        fontSize: settings.fontSize,
+                        lineHeight: settings.fontSize * settings.lineHeight,
+                      },
+                    ]}
+                  >
+                    {getFullContent(node.content)}
+                  </Text>
 
-      <Pressable style={styles.restartButton} onPress={() => void restartReading()}>
-        <Text style={styles.restartButtonText}>{t('reader.startOver')}</Text>
-      </Pressable>
-      {__DEV__ ? (
-        <Pressable style={styles.debugToggleButton} onPress={() => setShowDebug((prev) => !prev)}>
-          <Text style={styles.debugToggleText}>{showDebug ? 'Hide debug' : 'Show debug'}</Text>
-        </Pressable>
-      ) : null}
+                  {node.type === 'choice' && node.choices && node.choices.length > 0 ? (
+                    <View style={styles.choiceBox}>
+                      {!effectiveMainlineOnly ? (
+                        <>
+                          <Text style={styles.choiceTitle}>{t('reader.choosePrompt')}</Text>
+                          {node.choices.map((choice) => (
+                            <Pressable
+                              key={choice.id}
+                              style={styles.choiceButton}
+                              onPress={() => handleChoice(choice)}
+                            >
+                              <Text style={styles.choiceText}>{choice.text}</Text>
+                            </Pressable>
+                          ))}
+                        </>
+                      ) : (
+                        <Text style={styles.subtitle}>{t('reader.chooseHintPure')}</Text>
+                      )}
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
 
-      {displayedNodeIds.map((nodeId) => {
-        const node = nodeMap.get(nodeId);
-        if (!node) return null;
-        return (
-          <View key={node.id} style={styles.nodeCard}>
-            {showDebug ? (
-              <Text style={styles.nodeDebugTitle}>
-                {node.id} · {node.type}
-              </Text>
+            {currentNode?.type === 'ending' ? (
+              <Text style={styles.endingText}>{t('reader.endingReached')}</Text>
             ) : null}
-            <Text style={styles.nodeContent}>{getFullContent(node.content)}</Text>
 
-            {node.type === 'choice' && node.choices && node.choices.length > 0 ? (
-              <View style={styles.choiceBox}>
-                {!pureMode ? (
-                  <>
-                    <Text style={styles.choiceTitle}>{t('reader.choosePrompt')}</Text>
-                    {node.choices.map((choice) => (
-                      <Pressable
-                        key={choice.id}
-                        style={styles.choiceButton}
-                        onPress={() => handleChoice(choice)}
-                      >
-                        <Text style={styles.choiceText}>{choice.text}</Text>
-                      </Pressable>
-                    ))}
-                  </>
-                ) : (
-                  <Text style={styles.subtitle}>{t('reader.chooseHintPure')}</Text>
-                )}
+            {__DEV__ && showDebug ? (
+              <View style={styles.debugBox}>
+                <Text style={styles.debugTitle}>DEBUG (Flutter alignment)</Text>
+                <Text style={styles.debugText}>
+                  db.current_node_id: {rawProgressDebug.currentNodeId ?? 'null'}
+                </Text>
+                <Text style={styles.debugText}>
+                  db.choice_history: {rawProgressDebug.choiceHistoryRaw ?? 'null'}
+                </Text>
+                <Text style={styles.debugText}>
+                  db.visited_node_ids: {rawProgressDebug.visitedNodeIdsRaw ?? 'null'}
+                </Text>
+                <Text style={styles.debugText}>
+                  parsed.choiceHistory: {JSON.stringify(progressState.choiceHistory)}
+                </Text>
+                <Text style={styles.debugText}>
+                  parsed.displayedNodeIds: {JSON.stringify(displayedNodeIds)}
+                </Text>
               </View>
             ) : null}
+        </ScrollView>
+
+        <View
+          pointerEvents={showToolbar ? 'auto' : 'none'}
+          style={[
+            styles.topToolbar,
+            {
+              height: topBarHeight,
+              paddingTop: insets.top,
+            },
+            !showToolbar && styles.toolbarHidden,
+          ]}
+        >
+            <Pressable onPress={() => router.back()} hitSlop={10}>
+              <Ionicons name="chevron-back" size={24} color="#111827" />
+            </Pressable>
+            <Text style={styles.topToolbarTitle} numberOfLines={1}>
+              {story.title}
+            </Text>
+            <View style={styles.topToolbarRight}>
+              {__DEV__ ? (
+                <Pressable
+                  style={styles.debugToggleButton}
+                  onPress={() => setShowDebug((prev) => !prev)}
+                >
+                  <Text style={styles.debugToggleText}>
+                    {showDebug ? t('reader.hideDebug') : t('reader.showDebug')}
+                  </Text>
+                </Pressable>
+              ) : null}
+              <Pressable onPress={() => void restartReading()} hitSlop={10}>
+                <Ionicons name="refresh" size={20} color="#111827" />
+              </Pressable>
+            </View>
+        </View>
+
+        <View
+          pointerEvents={showToolbar ? 'auto' : 'none'}
+          style={[
+            styles.bottomToolbar,
+            {
+              height: bottomBarHeight,
+              paddingBottom: insets.bottom + 8,
+            },
+            !showToolbar && styles.toolbarHidden,
+          ]}
+        >
+            <Pressable
+              style={styles.toolbarButton}
+              onPress={() => {
+                setShowSettings(false);
+                setActivePanel('branch');
+              }}
+            >
+              <Ionicons name="git-branch-outline" size={22} color="#111827" />
+              <Text style={styles.toolbarButtonText}>{t('reader.toolbarBranch')}</Text>
+            </Pressable>
+            <Pressable
+              style={styles.toolbarButton}
+              onPress={() => {
+                setShowSettings(false);
+                setActivePanel('characters');
+              }}
+            >
+              <Ionicons name="people-outline" size={22} color="#111827" />
+              <Text style={styles.toolbarButtonText}>{t('reader.toolbarCharacters')}</Text>
+            </Pressable>
+            <Pressable
+              style={styles.toolbarButton}
+              onPress={() => {
+                setActivePanel('settings');
+                setShowSettings((prev) => !prev);
+              }}
+            >
+              <Ionicons name="settings-outline" size={22} color="#111827" />
+              <Text style={styles.toolbarButtonText}>{t('reader.toolbarSettings')}</Text>
+            </Pressable>
+        </View>
+      </View>
+
+      {showSettings && activePanel === 'settings' ? (
+        <View style={[styles.settingsPanel, { bottom: bottomBarHeight + 10 }]}>
+          <Text style={styles.settingsPanelTitle}>{t('reader.settingsTitle')}</Text>
+
+          <View style={styles.settingRow}>
+            <Text style={styles.settingLabel}>{t('reader.fontSize')}: {settings.fontSize.toFixed(0)}</Text>
+            <View style={styles.settingActions}>
+              <Pressable
+                style={styles.settingActionButton}
+                onPress={() =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    fontSize: Math.max(14, prev.fontSize - 1),
+                  }))
+                }
+              >
+                <Text style={styles.settingActionText}>-</Text>
+              </Pressable>
+              <Pressable
+                style={styles.settingActionButton}
+                onPress={() =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    fontSize: Math.min(28, prev.fontSize + 1),
+                  }))
+                }
+              >
+                <Text style={styles.settingActionText}>+</Text>
+              </Pressable>
+            </View>
           </View>
-        );
-      })}
 
-      {currentNode?.type === 'ending' ? (
-        <Text style={styles.endingText}>{t('reader.endingReached')}</Text>
-      ) : null}
+          <View style={styles.settingRow}>
+            <Text style={styles.settingLabel}>{t('reader.lineHeight')}: {settings.lineHeight.toFixed(2)}</Text>
+            <View style={styles.settingActions}>
+              <Pressable
+                style={styles.settingActionButton}
+                onPress={() =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    lineHeight: Math.max(1.4, Number((prev.lineHeight - 0.1).toFixed(2))),
+                  }))
+                }
+              >
+                <Text style={styles.settingActionText}>-</Text>
+              </Pressable>
+              <Pressable
+                style={styles.settingActionButton}
+                onPress={() =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    lineHeight: Math.min(2.4, Number((prev.lineHeight + 0.1).toFixed(2))),
+                  }))
+                }
+              >
+                <Text style={styles.settingActionText}>+</Text>
+              </Pressable>
+            </View>
+          </View>
 
-      {__DEV__ && showDebug ? (
-        <View style={styles.debugBox}>
-          <Text style={styles.debugTitle}>DEBUG (Flutter alignment)</Text>
-          <Text style={styles.debugText}>db.current_node_id: {rawProgressDebug.currentNodeId ?? 'null'}</Text>
-          <Text style={styles.debugText}>
-            db.choice_history: {rawProgressDebug.choiceHistoryRaw ?? 'null'}
-          </Text>
-          <Text style={styles.debugText}>
-            db.visited_node_ids: {rawProgressDebug.visitedNodeIdsRaw ?? 'null'}
-          </Text>
-          <Text style={styles.debugText}>
-            parsed.choiceHistory: {JSON.stringify(progressState.choiceHistory)}
-          </Text>
-          <Text style={styles.debugText}>
-            parsed.displayedNodeIds: {JSON.stringify(displayedNodeIds)}
-          </Text>
+          <View style={styles.settingRow}>
+            <Text style={styles.settingLabel}>
+              {t('reader.horizontalPadding')}: {settings.horizontalPadding.toFixed(0)}
+            </Text>
+            <View style={styles.settingActions}>
+              <Pressable
+                style={styles.settingActionButton}
+                onPress={() =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    horizontalPadding: Math.max(12, prev.horizontalPadding - 2),
+                  }))
+                }
+              >
+                <Text style={styles.settingActionText}>-</Text>
+              </Pressable>
+              <Pressable
+                style={styles.settingActionButton}
+                onPress={() =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    horizontalPadding: Math.min(36, prev.horizontalPadding + 2),
+                  }))
+                }
+              >
+                <Text style={styles.settingActionText}>+</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.settingRow}>
+            <Text style={styles.settingLabel}>{t('reader.brightness')}: {Math.round(settings.brightness * 100)}%</Text>
+            <View style={styles.settingActions}>
+              <Pressable
+                style={styles.settingActionButton}
+                onPress={() =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    brightness: Math.max(0.35, Number((prev.brightness - 0.05).toFixed(2))),
+                  }))
+                }
+              >
+                <Text style={styles.settingActionText}>-</Text>
+              </Pressable>
+              <Pressable
+                style={styles.settingActionButton}
+                onPress={() =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    brightness: Math.min(1, Number((prev.brightness + 0.05).toFixed(2))),
+                  }))
+                }
+              >
+                <Text style={styles.settingActionText}>+</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.settingRow}>
+            <Text style={styles.settingLabel}>{t('reader.background')}</Text>
+            <View style={styles.colorRow}>
+              {['#ffffff', '#f7f3e9', '#e8f0ff', '#111827'].map((color) => (
+                <Pressable
+                  key={color}
+                  onPress={() => setSettings((prev) => ({ ...prev, backgroundColor: color }))}
+                  style={[
+                    styles.colorChip,
+                    { backgroundColor: color },
+                    settings.backgroundColor === color && styles.colorChipActive,
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
+
+          <Pressable
+            style={styles.mainlineToggle}
+            disabled={routePureMode}
+            onPress={() => setSettings((prev) => ({ ...prev, mainlineOnly: !prev.mainlineOnly }))}
+          >
+            <Text style={[styles.settingLabel, routePureMode && styles.settingDisabled]}>
+              {t('reader.mainlineOnly')}: {effectiveMainlineOnly ? t('reader.modePure') : t('reader.modeInteractive')}
+            </Text>
+          </Pressable>
+
+          <View style={styles.panelBottomRow}>
+            <Pressable
+              style={styles.panelButton}
+              onPress={() => setSettings(DEFAULT_READER_SETTINGS)}
+            >
+              <Text style={styles.panelButtonText}>{t('reader.resetSettings')}</Text>
+            </Pressable>
+            <Pressable
+              style={styles.panelButton}
+              onPress={() => {
+                setShowSettings(false);
+                setActivePanel(null);
+              }}
+            >
+              <Text style={styles.panelButtonText}>{t('reader.closeSettings')}</Text>
+            </Pressable>
+          </View>
         </View>
       ) : null}
-    </ScrollView>
+
+      {settings.brightness < 1 ? (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.brightnessMask,
+            { opacity: 1 - settings.brightness },
+          ]}
+        />
+      ) : null}
+      {showToolbar && activePanel === 'branch' ? (
+        <View style={[styles.placeholderPanel, { bottom: bottomBarHeight + 10 }]}>
+          <Text style={styles.settingsPanelTitle}>{t('reader.toolbarBranch')}</Text>
+          <Text style={styles.placeholderText}>
+            {t('reader.progressPercent')}: {progressPercentage}%
+          </Text>
+          <Text style={styles.placeholderText}>
+            {t('reader.currentNode')}: {progressState.currentNodeId}
+          </Text>
+          <Pressable
+            style={[
+              styles.panelButton,
+              progressState.choiceHistory.length === 0 && styles.panelButtonDisabled,
+            ]}
+            disabled={progressState.choiceHistory.length === 0}
+            onPress={rollbackLastChoice}
+          >
+            <Text style={styles.panelButtonText}>{t('reader.rollbackLastChoice')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {showToolbar && activePanel === 'characters' ? (
+        <View style={[styles.placeholderPanel, { bottom: bottomBarHeight + 10 }]}>
+          <Text style={styles.settingsPanelTitle}>{t('reader.toolbarCharacters')}</Text>
+          <View style={styles.characterList}>
+            {story.mainCharacters.slice(0, 6).map((character) => (
+              <Pressable
+                key={character.id}
+                style={styles.characterChip}
+                onPress={() => router.push(`/character/${character.id}`)}
+              >
+                <Text style={styles.characterChipText}>{character.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -521,8 +956,8 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 42,
+    paddingTop: 20,
+    paddingBottom: 32,
   },
   title: {
     fontSize: 22,
@@ -544,14 +979,80 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
   },
-  debugToggleButton: {
+  settingsButton: {
     marginTop: 8,
     alignSelf: 'flex-start',
     paddingVertical: 4,
   },
-  debugToggleText: {
+  settingsButtonText: {
     color: '#2563eb',
     fontSize: 12,
+  },
+  debugToggleButton: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  debugToggleText: {
+    color: '#2563eb',
+    fontSize: 11,
+  },
+  readerLayer: {
+    flex: 1,
+  },
+  topToolbar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 76,
+    paddingTop: 0,
+    paddingHorizontal: 14,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderColor: '#e5e7eb',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  topToolbarTitle: {
+    flex: 1,
+    marginHorizontal: 12,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  topToolbarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bottomToolbar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 92,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  toolbarButton: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  toolbarButtonText: {
+    fontSize: 11,
+    color: '#111827',
+  },
+  toolbarHidden: {
+    opacity: 0,
   },
   nodeCard: {
     marginTop: 20,
@@ -611,5 +1112,130 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#374151',
     marginBottom: 4,
+  },
+  settingsPanel: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    bottom: 106,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#ffffff',
+    padding: 12,
+    gap: 8,
+  },
+  settingsPanelTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  settingLabel: {
+    color: '#1f2937',
+    fontSize: 13,
+  },
+  settingDisabled: {
+    color: '#9ca3af',
+  },
+  settingActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  settingActionButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingActionText: {
+    fontWeight: '700',
+    color: '#111827',
+  },
+  colorRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  colorChip: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  colorChipActive: {
+    borderWidth: 2,
+    borderColor: '#111827',
+  },
+  mainlineToggle: {
+    marginTop: 2,
+  },
+  panelBottomRow: {
+    marginTop: 4,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  panelButton: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  panelButtonText: {
+    color: '#111827',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  panelButtonDisabled: {
+    opacity: 0.5,
+  },
+  brightnessMask: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000000',
+  },
+  placeholderPanel: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    bottom: 106,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#ffffff',
+    padding: 12,
+  },
+  placeholderText: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 8,
+  },
+  characterList: {
+    marginTop: 6,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  characterChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#f9fafb',
+  },
+  characterChipText: {
+    color: '#111827',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
