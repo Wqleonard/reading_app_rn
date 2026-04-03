@@ -241,7 +241,7 @@ reading-app-rn/
   - 中英文切换有效
 
 ## Phase 2 - 核心数据层迁移（故事 JSON）
-- 状态：`todo`
+- 状态：`done`
 - 步骤：
   1. 复制并托管 `story_merged.json` 到 RN 资源目录
   2. 建立 Story 类型定义与解析器（对齐 `StoryWithNodes`）
@@ -252,7 +252,7 @@ reading-app-rn/
   - 进度读写与 Flutter 字段兼容
 
 ## Phase 3 - Tabs 四大页面首版
-- 状态：`todo`
+- 状态：`done`
 - 步骤：
   1. 推荐页视频状态机
   2. 广场页轮播+分类+故事列表+继续阅读
@@ -263,7 +263,7 @@ reading-app-rn/
   - 从列表到详情跳转完整
 
 ## Phase 4 - 故事详情与角色详情
-- 状态：`todo`
+- 状态：`done`
 - 步骤：
   1. 故事详情头图/标签/评论区
   2. 角色横向卡片（解锁/未解锁态）
@@ -326,9 +326,9 @@ reading-app-rn/
 |---|---|---|---|
 | T-001 | 完成 Flutter 基线审计 | done | 本文档已落地 |
 | T-002 | 建立 RN 基础设施（state/network/db/i18n） | done | Phase 1 已完成（含网络错误模型与Repository层） |
-| T-003 | 故事 JSON 数据层迁移 | todo | Phase 2 |
-| T-004 | Tabs 四模块首版 | todo | Phase 3 |
-| T-005 | 故事详情 + 角色详情 | todo | Phase 4 |
+| T-003 | 故事 JSON 数据层迁移 | done | 已完成 JSON 托管 + Story/branch_graph 解析器 + 页面接入验证 |
+| T-004 | Tabs 四模块首版 | done | 推荐状态机 + 广场分类/继续阅读 + 邂逅三态 + 我的三标签 |
+| T-005 | 故事详情 + 角色详情 | done | 已完成故事评论区、角色作品列表、互动/纯享阅读入口参数化 |
 | T-006 | 阅读器核心功能 | todo | Phase 5 |
 | T-007 | 聊天与 AI | todo | Phase 6 |
 | T-008 | 性能与回归 | todo | Phase 7 |
