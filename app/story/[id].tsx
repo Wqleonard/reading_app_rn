@@ -1,13 +1,66 @@
 import { Link, useLocalSearchParams } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { getStoryById } from '@/src/data/story/storyService';
+import StoryBranchMap from '@/src/features/reader/branch/StoryBranchMap';
+import StoryBranchProgressBar from '@/src/features/reader/branch/StoryBranchProgressBar';
+import {
+  buildBranchColumns,
+  buildBranchEdges,
+} from '@/src/features/reader/branch/storyBranchBuilder';
+import { resolveStoryImageSource } from '@/app/storyImageResolver';
+import { readingProgressRepository } from '@/src/storage/db/repositories/readingProgressRepository';
+
+function parseVisitedNodeIds(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((item) => String(item));
+  } catch {
+    return [];
+  }
+}
 
 export default function StoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const story = id ? getStoryById(id) : null;
+  const [visitedNodeIds, setVisitedNodeIds] = useState<string[]>([]);
+  const [progressPercentage, setProgressPercentage] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadProgress() {
+      if (!story) return;
+      const row = await readingProgressRepository.getByStoryId(story.id);
+      if (!mounted) return;
+      const visited = parseVisitedNodeIds(row?.visited_node_ids);
+      setVisitedNodeIds(visited);
+      setProgressPercentage(
+        row?.progress_percentage ??
+          (story.nodes.length > 0
+            ? Math.round((visited.length / story.nodes.length) * 100)
+            : 0)
+      );
+    }
+    void loadProgress();
+    return () => {
+      mounted = false;
+    };
+  }, [story]);
+
+  const visitedSet = useMemo(() => new Set(visitedNodeIds), [visitedNodeIds]);
+  const branchColumns = useMemo(() => {
+    if (!story) return [];
+    return buildBranchColumns(story, visitedSet);
+  }, [story, visitedSet]);
+  const branchEdges = useMemo(() => {
+    if (!story) return [];
+    return buildBranchEdges(story);
+  }, [story]);
 
   if (!story) {
     return (
@@ -65,6 +118,28 @@ export default function StoryDetailScreen() {
       <Text style={styles.subtitle}>
         {t('storyDetail.branchEdges')}: {story.branchGraph?.edges.length ?? 0}
       </Text>
+
+      <Text style={styles.sectionTitle}>{t('reader.branchMapTitle')}</Text>
+      {branchColumns.length > 0 && branchEdges.length > 0 ? (
+        <>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.branchMapScroll}
+          >
+            <StoryBranchMap
+              columns={branchColumns}
+              edges={branchEdges}
+              resolveImageSource={resolveStoryImageSource}
+            />
+          </ScrollView>
+          <View style={styles.branchProgressWrap}>
+            <StoryBranchProgressBar percentage={progressPercentage} />
+          </View>
+        </>
+      ) : (
+        <Text style={styles.subtitle}>{t('reader.branchMapEmpty')}</Text>
+      )}
 
       <Text style={styles.sectionTitle}>{t('storyDetail.comments')}</Text>
       {story.comments.map((comment) => (
@@ -146,5 +221,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: '#6b7280',
     fontSize: 12,
+  },
+  branchMapScroll: {
+    paddingHorizontal: 4,
+  },
+  branchProgressWrap: {
+    marginTop: 12,
+    paddingHorizontal: 4,
   },
 });

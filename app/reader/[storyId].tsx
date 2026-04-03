@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
+  Alert,
   Animated,
   Modal,
   Image,
@@ -18,6 +19,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getStoryById } from '@/src/data/story/storyService';
 import type { StoryChoice, StoryNode, StoryWithNodes } from '@/src/data/story/types';
+import StoryBranchMap, {
+  getApproxBranchColumnWidth,
+} from '@/src/features/reader/branch/StoryBranchMap';
+import StoryBranchProgressBar from '@/src/features/reader/branch/StoryBranchProgressBar';
+import {
+  buildBranchColumns,
+  buildBranchEdges,
+} from '@/src/features/reader/branch/storyBranchBuilder';
+import { resolveStoryImageSource } from '@/app/storyImageResolver';
 import { readingProgressRepository } from '@/src/storage/db/repositories/readingProgressRepository';
 import { kv } from '@/src/storage/kv/kv';
 
@@ -55,20 +65,6 @@ const DEFAULT_READER_SETTINGS: ReaderSettings = {
   brightness: 1,
   mainlineOnly: false,
 };
-
-const ICONIC_SCENE_LOCAL_SOURCES: Record<string, ImageSourcePropType> = {
-  'assets/mock/我心归处是良人/images/iconic_scene/scene_1.png': require('../../assets/story/iconic_scene/scene_1.png'),
-  'assets/mock/我心归处是良人/images/iconic_scene/scene_2.png': require('../../assets/story/iconic_scene/scene_2.png'),
-  'assets/mock/我心归处是良人/images/iconic_scene/scene_3.png': require('../../assets/story/iconic_scene/scene_3.png'),
-};
-
-function resolveStoryImageSource(imageUrl: string | null | undefined): ImageSourcePropType | null {
-  if (!imageUrl) return null;
-  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-    return { uri: imageUrl };
-  }
-  return ICONIC_SCENE_LOCAL_SOURCES[imageUrl] ?? null;
-}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -482,6 +478,7 @@ export default function ReaderScreen() {
   const [activePanel, setActivePanel] = useState<'settings' | 'branch' | 'characters' | null>(
     null
   );
+  const branchScrollRef = useRef<ScrollView>(null);
   const [showDebug, setShowDebug] = useState(false);
   const [iconicModalNodeId, setIconicModalNodeId] = useState<string | null>(null);
   const tapStartRef = useRef<{ x: number; y: number; ts: number } | null>(null);
@@ -499,16 +496,56 @@ export default function ReaderScreen() {
     if (!progressState) return null;
     return nodeMap.get(progressState.currentNodeId) ?? null;
   }, [nodeMap, progressState]);
-  const rollbackCandidates = useMemo(() => {
+  const visitedNodeSet = useMemo(
+    () => new Set(progressState?.visitedNodeIds ?? []),
+    [progressState?.visitedNodeIds]
+  );
+  const branchColumns = useMemo(() => {
     if (!story || !progressState) return [];
-    return story.nodes
-      .filter(
-        (node) =>
-          progressState.visitedNodeIds.includes(node.id) &&
-          node.id !== progressState.currentNodeId
-      )
-      .slice(0, 18);
-  }, [progressState, story]);
+    return buildBranchColumns(story, visitedNodeSet);
+  }, [progressState, story, visitedNodeSet]);
+  const branchEdges = useMemo(() => {
+    if (!story) return [];
+    return buildBranchEdges(story);
+  }, [story]);
+  const currentNodeColumnIndex = useMemo(() => {
+    if (!progressState) return -1;
+    return branchColumns.findIndex((column) =>
+      column.some((item) => item.id === progressState.currentNodeId)
+    );
+  }, [branchColumns, progressState]);
+  const characterCards = useMemo(() => {
+    if (!story) return [];
+    const unlocked = story.mainCharacters
+      .filter((item) => item.isInteracted)
+      .slice(0, 6)
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        imageUrl: item.avatar ?? '',
+        subText: t('reader.characterViewStory'),
+        encounterText:
+          typeof item.encounterCount === 'number' && item.encounterCount > 0
+            ? item.encounterCount >= 10000
+              ? t('reader.characterEncounterW', {
+                  count: (item.encounterCount / 10000).toFixed(1),
+                })
+              : t('reader.characterEncounter', { count: item.encounterCount })
+            : t('reader.characterEncounterW', { count: '3.5' }),
+        unlocked: true,
+      }));
+    while (unlocked.length < 6) {
+      unlocked.push({
+        id: `locked_${unlocked.length}`,
+        name: '???',
+        imageUrl: 'assets/mock/我心归处是良人/images/reader_panel/panel_locked_bg.png',
+        subText: t('reader.characterLocked'),
+        encounterText: t('reader.characterEncounterW', { count: '3.5' }),
+        unlocked: false,
+      });
+    }
+    return unlocked;
+  }, [story, t]);
   const readerTextColor = useMemo(
     () => getReadableTextColor(settings.backgroundColor),
     [settings.backgroundColor]
@@ -643,22 +680,18 @@ export default function ReaderScreen() {
     }
   }, [showToolbar]);
 
-  function rollbackLastChoice() {
-    if (!story || !progressState || progressState.choiceHistory.length === 0) return;
-    const nextHistory = progressState.choiceHistory.slice(0, -1);
-    const rebuilt = buildContentFromProgress(
-      story,
-      nodeMap,
-      {
-        currentNodeId: story.startNodeId,
-        choiceHistory: nextHistory,
-        visitedNodeIds: [],
-      },
-      effectiveMainlineOnly
-    );
-    setDisplayedNodeIds(rebuilt.displayedNodeIds);
-    setProgressState(rebuilt.progress);
-  }
+  useEffect(() => {
+    if (showToolbar && activePanel === 'branch' && currentNodeColumnIndex >= 0) {
+      const timer = setTimeout(() => {
+        branchScrollRef.current?.scrollTo({
+          x: currentNodeColumnIndex * getApproxBranchColumnWidth(),
+          animated: false,
+        });
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [activePanel, currentNodeColumnIndex, showToolbar]);
 
   function rollbackToNode(targetNodeId: string): boolean {
     if (!story || !progressState) return false;
@@ -704,6 +737,25 @@ export default function ReaderScreen() {
     setDisplayedNodeIds(rebuilt.displayedNodeIds);
     setProgressState(rebuilt.progress);
     return true;
+  }
+
+  function confirmRollbackToNode(targetNodeId: string, title: string) {
+    Alert.alert(
+      t('reader.rollbackConfirmTitle'),
+      t('reader.rollbackConfirmContent', { node: title || targetNodeId }),
+      [
+        { text: t('reader.closeSettings'), style: 'cancel' },
+        {
+          text: t('reader.rollbackConfirmAction'),
+          onPress: () => {
+            const ok = rollbackToNode(targetNodeId);
+            if (ok) {
+              setActivePanel(null);
+            }
+          },
+        },
+      ]
+    );
   }
 
   function collectHighlightImage(imageUrl: string) {
@@ -1270,60 +1322,118 @@ export default function ReaderScreen() {
         />
       ) : null}
       {showToolbar && activePanel === 'branch' ? (
-        <View style={[styles.placeholderPanel, { bottom: bottomBarHeight + 10 }]}>
-          <Text style={styles.settingsPanelTitle}>{t('reader.toolbarBranch')}</Text>
-          <Text style={styles.placeholderText}>
-            {t('reader.progressPercent')}: {progressPercentage}%
-          </Text>
-          <Text style={styles.placeholderText}>
-            {t('reader.currentNode')}: {progressState.currentNodeId}
-          </Text>
-          <Pressable
-            style={[
-              styles.panelButton,
-              progressState.choiceHistory.length === 0 && styles.panelButtonDisabled,
-            ]}
-            disabled={progressState.choiceHistory.length === 0}
-            onPress={rollbackLastChoice}
-          >
-            <Text style={styles.panelButtonText}>{t('reader.rollbackLastChoice')}</Text>
-          </Pressable>
-          {rollbackCandidates.length > 0 ? (
-            <View style={styles.rollbackList}>
-              {rollbackCandidates.map((node) => (
-                <Pressable
-                  key={node.id}
-                  style={styles.rollbackItem}
-                  onPress={() => {
-                    const ok = rollbackToNode(node.id);
-                    if (ok) {
-                      setActivePanel(null);
+        <View style={[styles.branchPanel, { paddingBottom: insets.bottom + 8 }]}>
+          <View style={styles.branchPanelTitleRow}>
+            <Text style={styles.branchPanelTitle}>{t('reader.toolbarBranch')}</Text>
+            <Text style={styles.branchPanelPercentText}>{progressPercentage}%</Text>
+          </View>
+          <View style={styles.branchPanelMapWrap}>
+            {branchColumns.length === 0 || branchEdges.length === 0 ? (
+              <Text style={styles.placeholderText}>{t('reader.branchMapEmpty')}</Text>
+            ) : (
+              <ScrollView
+                ref={branchScrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.branchMapScrollContent}
+              >
+                <StoryBranchMap
+                  columns={branchColumns}
+                  edges={branchEdges}
+                  resolveImageSource={resolveStoryImageSource}
+                  onNodeTap={(node) => {
+                    if (node.id === progressState.currentNodeId) return;
+                    if (!progressState.visitedNodeIds.includes(node.id)) {
+                      Alert.alert('', t('reader.rollbackUnreadable'));
+                      return;
                     }
+                    confirmRollbackToNode(node.id, node.title);
                   }}
-                >
-                  <Text style={styles.rollbackItemText} numberOfLines={1}>
-                    {node.id}
-                  </Text>
-                </Pressable>
-              ))}
+                />
+              </ScrollView>
+            )}
+          </View>
+          <View style={styles.branchPanelBottomRow}>
+            <StoryBranchProgressBar percentage={progressPercentage} />
+            <View style={styles.branchPanelBottomRight}>
+              <Pressable
+                style={styles.branchLocateInline}
+                onPress={() => {
+                  if (currentNodeColumnIndex >= 0) {
+                    branchScrollRef.current?.scrollTo({
+                      x: currentNodeColumnIndex * getApproxBranchColumnWidth(),
+                      animated: true,
+                    });
+                  }
+                }}
+              >
+                <Ionicons name="locate-outline" size={14} color="#6b7280" />
+                <Text style={styles.branchLocateInlineText}>{t('reader.locateCurrentNode')}</Text>
+              </Pressable>
             </View>
-          ) : null}
+          </View>
         </View>
       ) : null}
       {showToolbar && activePanel === 'characters' ? (
-        <View style={[styles.placeholderPanel, { bottom: bottomBarHeight + 10 }]}>
-          <Text style={styles.settingsPanelTitle}>{t('reader.toolbarCharacters')}</Text>
-          <View style={styles.characterList}>
-            {story.mainCharacters.slice(0, 6).map((character) => (
-              <Pressable
-                key={character.id}
-                style={styles.characterChip}
-                onPress={() => router.push(`/character/${character.id}`)}
-              >
-                <Text style={styles.characterChipText}>{character.name}</Text>
-              </Pressable>
-            ))}
+        <View style={[styles.characterPanel, { paddingBottom: insets.bottom + 8 }]}>
+          <View style={styles.characterPanelTitleRow}>
+            <Text style={styles.branchPanelTitle}>{t('reader.characterOverview')}</Text>
+            <Text style={styles.branchPanelPercentText}>
+              {`${story.mainCharacters.filter((item) => item.isInteracted).length}/6`}
+            </Text>
           </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.characterListScroll}
+          >
+            {characterCards.map((character) => {
+              const fallbackImage = character.unlocked
+                ? `assets/mock/我心归处是良人/images/reader_panel/${
+                    String(character.id).length % 2 === 0 ? 'panel_char_1.png' : 'panel_char_2.png'
+                  }`
+                : 'assets/mock/我心归处是良人/images/reader_panel/panel_locked_bg.png';
+              const imageSource =
+                resolveStoryImageSource(character.imageUrl) ??
+                resolveStoryImageSource(fallbackImage);
+              return (
+                <Pressable
+                  key={character.id}
+                  style={styles.characterCardItem}
+                  onPress={() => {
+                    if (!character.unlocked) {
+                      Alert.alert('', t('reader.characterLockedToast'));
+                      return;
+                    }
+                    router.push(`/character/${character.id}`);
+                  }}
+                >
+                  <View style={[styles.characterPoster, !character.unlocked && styles.characterPosterLocked]}>
+                    {imageSource ? (
+                      <Image source={imageSource} style={styles.characterPosterImage} resizeMode="cover" />
+                    ) : null}
+                    <View style={styles.characterPosterOverlay} />
+                    {!character.unlocked ? <View style={styles.characterPosterMask} /> : null}
+                    <View style={styles.characterPosterMetaRow}>
+                      <Ionicons name="heart" size={10} color="#fde047" />
+                      <Text style={styles.characterPosterMetaText}>{character.encounterText}</Text>
+                    </View>
+                    <Text style={[styles.characterPosterName, !character.unlocked && styles.characterPosterNameLocked]}>
+                      {character.name}
+                    </Text>
+                    {!character.unlocked ? (
+                      <View style={styles.characterPosterLockBadge}>
+                        <Ionicons name="lock-closed" size={18} color="#ffffff" />
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text style={styles.characterPosterSubText} numberOfLines={1}>
+                    {character.subText}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
       ) : null}
       <Modal
@@ -1797,26 +1907,28 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 8,
   },
-  panelButton: {
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  panelButtonText: {
-    color: '#111827',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  panelButtonDisabled: {
-    opacity: 0.5,
-  },
   brightnessMask: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#000000',
   },
-  placeholderPanel: {
+  branchPanel: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    borderTopWidth: 1,
+    borderColor: '#f3f4f6',
+    backgroundColor: '#ffffff',
+    paddingTop: 8,
+    shadowColor: '#000000',
+    shadowOpacity: 0.05,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: -10 },
+    zIndex: 20,
+  },
+  characterPanel: {
     position: 'absolute',
     left: 12,
     right: 12,
@@ -1826,6 +1938,64 @@ const styles = StyleSheet.create({
     borderColor: '#d1d5db',
     backgroundColor: '#ffffff',
     padding: 12,
+  },
+  branchPanelTitleRow: {
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  branchPanelTitle: {
+    color: '#111827',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  branchPanelPercentText: {
+    color: '#6b7280',
+    fontSize: 12,
+  },
+  branchPanelMapWrap: {
+    marginTop: 14,
+  },
+  branchMapScrollContent: {
+    paddingHorizontal: 20,
+  },
+  branchPanelBottomRow: {
+    marginTop: 12,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  branchPanelBottomRight: {
+    marginLeft: 'auto',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  branchLocateInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  branchLocateInlineText: {
+    marginLeft: 4,
+    color: '#6b7280',
+    fontSize: 12,
+  },
+  branchSummaryRow: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  branchSummaryText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#4b5563',
   },
   placeholderText: {
     fontSize: 13,
@@ -1853,24 +2023,94 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
-  characterList: {
-    marginTop: 6,
+  characterPanelTitleRow: {
+    marginTop: 14,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
-  characterChip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: '#f9fafb',
+  characterListScroll: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    gap: 4,
   },
-  characterChipText: {
-    color: '#111827',
+  characterCardItem: {
+    width: 98,
+    marginRight: 4,
+  },
+  characterPoster: {
+    width: 98,
+    height: 214,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#fbbf24',
+    backgroundColor: '#f3f4f6',
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  characterPosterLocked: {
+    borderColor: '#ffffff',
+  },
+  characterPosterImage: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  characterPosterOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.32)',
+  },
+  characterPosterMask: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  characterPosterMetaRow: {
+    position: 'absolute',
+    left: 8,
+    bottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  characterPosterMetaText: {
+    color: '#fde047',
+    fontSize: 8,
+    lineHeight: 10,
+  },
+  characterPosterName: {
+    position: 'absolute',
+    left: 8,
+    bottom: 28,
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  characterPosterNameLocked: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  characterPosterLockBadge: {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    marginLeft: -15,
+    marginTop: -15,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  characterPosterSubText: {
+    marginTop: 8,
+    color: '#6b7280',
     fontSize: 12,
-    fontWeight: '600',
+    lineHeight: 16,
+    textAlign: 'center',
   },
   iconicModalRoot: {
     flex: 1,
