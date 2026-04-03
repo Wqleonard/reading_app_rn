@@ -114,8 +114,11 @@ const zhCN = {
     pause: '暂停',
     play: '播放',
     restart: '重开',
+    restartFlow: '重新开始',
     choosePrompt: '请选择分支',
     chosen: '已选择',
+    noBlock: '不阻拦',
+    block: '阻拦',
   },
   square: {
     title: '故事广场',

@@ -28,6 +28,8 @@ PODS:
     - Yoga
   - ExpoAsset (55.0.10):
     - ExpoModulesCore
+  - ExpoBlur (55.0.12):
+    - ExpoModulesCore
   - ExpoDomWebView (55.0.3):
     - ExpoModulesCore
   - ExpoFileSystem (55.0.12):
@@ -91,6 +93,8 @@ PODS:
   - ExpoSQLite (55.0.11):
     - ExpoModulesCore
   - ExpoSymbols (55.0.5):
+    - ExpoModulesCore
+  - ExpoVideo (55.0.13):
     - ExpoModulesCore
   - ExpoWebBrowser (55.0.10):
     - ExpoModulesCore
@@ -2237,6 +2241,7 @@ DEPENDENCIES:
   - EXConstants (from `../node_modules/expo-constants/ios`)
   - Expo (from `../node_modules/expo`)
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
+  - ExpoBlur (from `../node_modules/expo-blur/ios`)
   - "ExpoDomWebView (from `../node_modules/@expo/dom-webview/ios`)"
   - ExpoFileSystem (from `../node_modules/expo-file-system/ios`)
   - ExpoFont (from `../node_modules/expo-font/ios`)
@@ -2253,6 +2258,7 @@ DEPENDENCIES:
   - ExpoSplashScreen (from `../node_modules/expo-splash-screen/ios`)
   - ExpoSQLite (from `../node_modules/expo-sqlite/ios`)
   - ExpoSymbols (from `../node_modules/expo-symbols/ios`)
+  - ExpoVideo (from `../node_modules/expo-video/ios`)
   - ExpoWebBrowser (from `../node_modules/expo-web-browser/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
@@ -2352,6 +2358,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo"
   ExpoAsset:
     :path: "../node_modules/expo-asset/ios"
+  ExpoBlur:
+    :path: "../node_modules/expo-blur/ios"
   ExpoDomWebView:
     :path: "../node_modules/@expo/dom-webview/ios"
   ExpoFileSystem:
@@ -2384,6 +2392,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-sqlite/ios"
   ExpoSymbols:
     :path: "../node_modules/expo-symbols/ios"
+  ExpoVideo:
+    :path: "../node_modules/expo-video/ios"
   ExpoWebBrowser:
     :path: "../node_modules/expo-web-browser/ios"
   FBLazyVector:
@@ -2550,6 +2560,7 @@ SPEC CHECKSUMS:
   EXConstants: 71da2085c347f6907b5b6c96ded7244891fc0f08
   Expo: 2749929a52192142cfcc2aa17dafd918d8cf074a
   ExpoAsset: 4966b4823ff0a7a0657c7b53e83b237a2eb9f45b
+  ExpoBlur: 08f4671be6bfe65994be7379fede338b6176a552
   ExpoDomWebView: d4f2ed3c3fa31d0ce89e79501a0c041c2f233189
   ExpoFileSystem: a36716f500022a3ca30605d3f10b908d7728b414
   ExpoFont: 4d2a6dedce012c4793532cb38d561d3da95eaafd
@@ -2566,6 +2577,7 @@ SPEC CHECKSUMS:
   ExpoSplashScreen: e3672db2d145e62208d4b761671f4fca1d4ef126
   ExpoSQLite: db205f2389129272d6dcd4e599416125041c92dd
   ExpoSymbols: 0e00156bc2d2118be6838ae4755ceaa2bf00afe2
+  ExpoVideo: defd2315608a4ba451721bd45d70141ad353ea81
   ExpoWebBrowser: 7e5355c91ebb6213e1eee4c370f5578ce49fd612
   FBLazyVector: 061f518bbd81677ed8a8317e2ae60b8779495808
   hermes-engine: 7f482842e40e01dc584f935c70df05ee2c11c5ab

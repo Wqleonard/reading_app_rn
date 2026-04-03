@@ -1442,7 +1442,7 @@ export default function ReaderScreen() {
                           styles.characterPosterImage,
                           !character.unlocked && styles.characterPosterImageLocked,
                         ]}
-                        resizeMode="cover"
+                        resizeMode={character.unlocked ? 'contain' : 'cover'}
                       />
                       {character.unlocked ? (
                         <LinearGradient
@@ -2103,10 +2103,11 @@ const styles = StyleSheet.create({
   characterPoster: {
     width: 98,
     height: 214,
+    position: 'relative',
     borderRadius: 16,
     borderWidth: 2,
     borderColor: '#ffffff',
-    backgroundColor: 'transparent',
+    backgroundColor: '#111827',
     overflow: 'hidden',
     shadowColor: '#000000',
     shadowOpacity: 0.1,

@@ -1,177 +1,280 @@
-import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { BlurView } from 'expo-blur';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { getStoryById } from '@/src/data/story/storyService';
-import { useRecommendStore } from '@/src/features/recommend/useRecommendStore';
+const MAIN_VIDEO_SOURCE = require('../../assets/video/1_main.mp4');
+const BLOCK_VIDEO_SOURCE = require('../../assets/video/1_block.mp4');
+const DECISION_THRESHOLD_SECONDS = 2;
+const END_EPSILON_SECONDS = 0.08;
+
+type RecommendAssetKey = 'main' | 'block';
+
+function isPlayerCompleted(player: ReturnType<typeof useVideoPlayer>): boolean {
+  const duration = Number.isFinite(player.duration) ? player.duration : 0;
+  if (duration <= 0) return false;
+  return player.currentTime >= duration - END_EPSILON_SECONDS;
+}
+
+function GlassButton({
+  label,
+  onPress,
+  enabled,
+}: {
+  label: string;
+  onPress?: () => void;
+  enabled: boolean;
+}) {
+  return (
+    <Pressable
+      disabled={!enabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.glassButtonOuter,
+        !enabled && styles.glassButtonDisabled,
+        pressed && enabled && styles.glassButtonPressed,
+      ]}
+    >
+      <BlurView intensity={30} tint="light" style={styles.glassButtonBlur}>
+        <View style={styles.glassButtonInner}>
+          <Text style={[styles.glassButtonText, !enabled && styles.glassButtonTextDisabled]}>
+            {label}
+          </Text>
+        </View>
+      </BlurView>
+    </Pressable>
+  );
+}
 
 export default function RecommendScreen() {
   const { t } = useTranslation();
-  const mode = useRecommendStore((state) => state.mode);
-  const playing = useRecommendStore((state) => state.playing);
-  const progress = useRecommendStore((state) => state.progress);
-  const chosenChoiceText = useRecommendStore((state) => state.chosenChoiceText);
-  const tick = useRecommendStore((state) => state.tick);
-  const togglePlay = useRecommendStore((state) => state.togglePlay);
-  const chooseBranch = useRecommendStore((state) => state.chooseBranch);
-  const restart = useRecommendStore((state) => state.restart);
-  const story = getStoryById('story_001');
-  const firstChoiceNode = story?.nodes.find((node) => node.type === 'choice');
-  const choices = firstChoiceNode?.choices ?? [];
+  const [ready, setReady] = useState(false);
+  const [showDecisionButtons, setShowDecisionButtons] = useState(false);
+  const [waitingForRestart, setWaitingForRestart] = useState(false);
+  const [showCenterPlayOverlay, setShowCenterPlayOverlay] = useState(false);
+  const [currentAsset, setCurrentAsset] = useState<RecommendAssetKey>('main');
+  const [isSwitching, setIsSwitching] = useState(false);
+  const pausedByTabSwitchRef = useRef(false);
+  const pendingAutoplayAfterSwitchRef = useRef(false);
+
+  const player = useVideoPlayer(MAIN_VIDEO_SOURCE, (videoPlayer) => {
+    videoPlayer.loop = false;
+    videoPlayer.muted = false;
+    videoPlayer.volume = 1;
+    videoPlayer.timeUpdateEventInterval = 0.2;
+    videoPlayer.play();
+  });
+
+  const switchAsset = useCallback(
+    async (asset: RecommendAssetKey, autoplay: boolean) => {
+      if (isSwitching) return;
+      setIsSwitching(true);
+      try {
+        const source = asset === 'main' ? MAIN_VIDEO_SOURCE : BLOCK_VIDEO_SOURCE;
+        await player.replaceAsync(source);
+        player.loop = false;
+        player.muted = false;
+        player.volume = 1;
+        player.currentTime = 0;
+        setCurrentAsset(asset);
+        setShowDecisionButtons(false);
+        setWaitingForRestart(false);
+        setShowCenterPlayOverlay(false);
+        setReady(true);
+        pendingAutoplayAfterSwitchRef.current = autoplay;
+        if (autoplay) {
+          if (player.status === 'readyToPlay') {
+            player.play();
+            pendingAutoplayAfterSwitchRef.current = false;
+          }
+        } else {
+          player.pause();
+          pendingAutoplayAfterSwitchRef.current = false;
+        }
+      } finally {
+        setIsSwitching(false);
+      }
+    },
+    [isSwitching, player]
+  );
+
+  const togglePlayPause = useCallback(() => {
+    if (waitingForRestart) return;
+    if (player.playing) {
+      player.pause();
+      setShowCenterPlayOverlay(true);
+      return;
+    }
+    if (isPlayerCompleted(player)) {
+      player.currentTime = 0;
+    }
+    player.play();
+    setShowCenterPlayOverlay(false);
+  }, [player, waitingForRestart]);
+
+  const playBlockVideo = useCallback(async () => {
+    await switchAsset('block', true);
+  }, [switchAsset]);
+
+  const restartFlow = useCallback(async () => {
+    await switchAsset('main', true);
+  }, [switchAsset]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (pausedByTabSwitchRef.current) {
+        pausedByTabSwitchRef.current = false;
+        if (!isPlayerCompleted(player)) {
+          player.play();
+        }
+      }
+      return () => {
+        if (player.playing) {
+          pausedByTabSwitchRef.current = true;
+          player.pause();
+        }
+      };
+    }, [player])
+  );
 
   useEffect(() => {
     const timer = setInterval(() => {
-      tick();
-    }, 500);
+      const isReady = player.status === 'readyToPlay';
+      if (isReady) {
+        setReady(true);
+        if (pendingAutoplayAfterSwitchRef.current) {
+          player.play();
+          pendingAutoplayAfterSwitchRef.current = false;
+        }
+      }
+      if (!isReady) return;
+      if (currentAsset === 'main') {
+        const duration = Number.isFinite(player.duration) ? player.duration : 0;
+        if (duration <= 0) return;
+        const shouldShow = duration - player.currentTime <= DECISION_THRESHOLD_SECONDS;
+        setShowDecisionButtons((prev) => (prev === shouldShow ? prev : shouldShow));
+        return;
+      }
+      if (currentAsset === 'block' && !waitingForRestart && isPlayerCompleted(player)) {
+        setWaitingForRestart(true);
+        setShowDecisionButtons(false);
+        setShowCenterPlayOverlay(false);
+      }
+    }, 200);
     return () => clearInterval(timer);
-  }, [tick]);
+  }, [currentAsset, player, waitingForRestart]);
+
+  if (!ready) {
+    return (
+      <View style={styles.loadingRoot}>
+        <ActivityIndicator color="#ffffff" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('recommend.title')}</Text>
-      <Text style={styles.subtitle}>
-        {mode === 'main'
-          ? t('recommend.modeMain')
-          : mode === 'decision'
-            ? t('recommend.modeDecision')
-            : t('recommend.modeBranch')}
-      </Text>
-
-      <View style={styles.videoCard}>
-        <Text style={styles.videoText}>
-          {t('recommend.progress')}: {progress}%
-        </Text>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${progress}%` }]} />
-        </View>
-        <Text style={styles.videoStatus}>
-          {playing ? t('recommend.playing') : t('recommend.paused')}
-        </Text>
-      </View>
-
-      <View style={styles.row}>
-        <Pressable style={styles.button} onPress={togglePlay}>
-          <Text style={styles.buttonText}>
-            {playing ? t('recommend.pause') : t('recommend.play')}
-          </Text>
-        </Pressable>
-        <Pressable style={[styles.button, styles.secondary]} onPress={restart}>
-          <Text style={styles.buttonText}>{t('recommend.restart')}</Text>
-        </Pressable>
-      </View>
-
-      {mode === 'decision' ? (
-        <View style={styles.decisionBox}>
-          <Text style={styles.decisionTitle}>{t('recommend.choosePrompt')}</Text>
-          {choices.map((choice) => (
-            <Pressable
-              key={choice.id}
-              style={styles.choiceButton}
-              onPress={() => chooseBranch(choice.text)}
-            >
-              <Text style={styles.choiceText}>{choice.text}</Text>
-            </Pressable>
-          ))}
+      <Pressable style={styles.videoTapArea} onPress={togglePlayPause}>
+        <VideoView player={player} style={styles.video} contentFit="cover" nativeControls={false} />
+      </Pressable>
+      {showCenterPlayOverlay ? (
+        <View pointerEvents="none" style={styles.centerPlayOverlayWrap}>
+          <View style={styles.centerPlayOverlay}>
+            <Ionicons name="play" size={44} color="#ffffff" />
+          </View>
         </View>
       ) : null}
-
-      {mode === 'branchResult' ? (
-        <Text style={styles.branchResult}>
-          {t('recommend.chosen')}: {chosenChoiceText}
-        </Text>
+      {currentAsset === 'main' && showDecisionButtons ? (
+        <View style={styles.decisionButtonsWrap}>
+          <GlassButton label={t('recommend.noBlock')} enabled={false} />
+          <View style={styles.buttonGap} />
+          <GlassButton label={t('recommend.block')} enabled onPress={playBlockVideo} />
+        </View>
+      ) : null}
+      {currentAsset === 'block' && waitingForRestart ? (
+        <View style={styles.restartButtonWrap}>
+          <GlassButton label={t('recommend.restartFlow')} enabled onPress={restartFlow} />
+        </View>
       ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  loadingRoot: {
+    flex: 1,
+    backgroundColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   container: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    backgroundColor: '#111',
+    backgroundColor: '#000000',
   },
-  title: {
-    color: '#fff',
-    fontSize: 22,
-    fontWeight: '700',
+  videoTapArea: {
+    ...StyleSheet.absoluteFillObject,
   },
-  subtitle: {
-    color: '#999',
-    marginTop: 8,
-    marginBottom: 16,
+  video: {
+    ...StyleSheet.absoluteFillObject,
   },
-  videoCard: {
-    borderRadius: 12,
-    backgroundColor: '#1f1f1f',
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#2c2c2c',
+  centerPlayOverlayWrap: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  videoText: {
-    color: '#fff',
-    fontWeight: '600',
+  centerPlayOverlay: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  videoStatus: {
-    marginTop: 8,
-    color: '#9ca3af',
+  decisionButtonsWrap: {
+    position: 'absolute',
+    right: 16,
+    bottom: 22,
+    alignItems: 'center',
   },
-  progressTrack: {
-    marginTop: 12,
-    width: '100%',
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: '#2b2b2b',
+  restartButtonWrap: {
+    position: 'absolute',
+    right: 16,
+    bottom: 22,
+  },
+  buttonGap: {
+    height: 10,
+  },
+  glassButtonOuter: {
+    width: 104,
+    borderRadius: 22,
     overflow: 'hidden',
   },
-  progressFill: {
-    height: 8,
-    backgroundColor: '#22c55e',
+  glassButtonDisabled: {
+    opacity: 0.9,
   },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
+  glassButtonPressed: {
+    opacity: 0.75,
   },
-  button: {
-    backgroundColor: '#2563eb',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  secondary: {
-    backgroundColor: '#374151',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-  decisionBox: {
-    marginTop: 20,
-    borderRadius: 12,
+  glassButtonBlur: {
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#2c2c2c',
-    padding: 12,
+    borderColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
-  decisionTitle: {
-    color: '#d1d5db',
-    marginBottom: 8,
+  glassButtonInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  glassButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
     fontWeight: '600',
   },
-  choiceButton: {
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#3f3f46',
-    padding: 10,
-    marginBottom: 8,
-    backgroundColor: '#18181b',
-  },
-  choiceText: {
-    color: '#f3f4f6',
-  },
-  branchResult: {
-    marginTop: 20,
-    color: '#86efac',
-    fontWeight: '600',
+  glassButtonTextDisabled: {
+    color: 'rgba(255,255,255,0.5)',
   },
 });

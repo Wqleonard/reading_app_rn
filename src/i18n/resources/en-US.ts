@@ -114,8 +114,11 @@ const enUS = {
     pause: 'Pause',
     play: 'Play',
     restart: 'Restart',
+    restartFlow: 'Restart',
     choosePrompt: 'Choose your branch',
     chosen: 'Chosen',
+    noBlock: 'Do not block',
+    block: 'Block',
   },
   square: {
     title: 'Story Plaza',
