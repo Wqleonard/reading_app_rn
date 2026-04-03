@@ -34,15 +34,21 @@ export default function SquareScreen() {
   }
 
   async function createDemoProgress() {
+    await readingProgressRepository.clearByStoryId('story_001');
     await readingProgressRepository.upsert({
       storyId: 'story_001',
-      currentNodeId: 'node_009_choice2',
-      choiceHistoryJson: JSON.stringify(['choice_001_save_emperor']),
+      currentNodeId: 'node_003_main',
+      choiceHistoryJson: JSON.stringify([
+        {
+          node_id: 'node_002_choice',
+          choice_id: 'choice_001_save_emperor',
+          timestamp: Date.now(),
+        },
+      ]),
       visitedNodeIdsJson: JSON.stringify([
         'node_001',
         'node_002_choice',
         'node_003_main',
-        'node_009_choice2',
       ]),
       lastReadAtMs: Date.now(),
       readDuration: 360,
