@@ -3,6 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Animated,
+  Modal,
+  Image,
+  type ImageSourcePropType,
   PanResponder,
   Pressable,
   ScrollView,
@@ -35,6 +38,8 @@ type ReaderSettings = {
   lineHeight: number;
   horizontalPadding: number;
   backgroundColor: string;
+  backgroundImageUrl: string | null;
+  collectedHighlightImages: string[];
   brightness: number;
   mainlineOnly: boolean;
 };
@@ -45,9 +50,25 @@ const DEFAULT_READER_SETTINGS: ReaderSettings = {
   lineHeight: 1.85,
   horizontalPadding: 20,
   backgroundColor: '#ffffff',
+  backgroundImageUrl: null,
+  collectedHighlightImages: [],
   brightness: 1,
   mainlineOnly: false,
 };
+
+const ICONIC_SCENE_LOCAL_SOURCES: Record<string, ImageSourcePropType> = {
+  'assets/mock/我心归处是良人/images/iconic_scene/scene_1.png': require('../../assets/story/iconic_scene/scene_1.png'),
+  'assets/mock/我心归处是良人/images/iconic_scene/scene_2.png': require('../../assets/story/iconic_scene/scene_2.png'),
+  'assets/mock/我心归处是良人/images/iconic_scene/scene_3.png': require('../../assets/story/iconic_scene/scene_3.png'),
+};
+
+function resolveStoryImageSource(imageUrl: string | null | undefined): ImageSourcePropType | null {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return { uri: imageUrl };
+  }
+  return ICONIC_SCENE_LOCAL_SOURCES[imageUrl] ?? null;
+}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -245,6 +266,15 @@ function normalizeReaderSettings(
       typeof raw?.backgroundColor === 'string'
         ? raw.backgroundColor
         : DEFAULT_READER_SETTINGS.backgroundColor,
+    backgroundImageUrl:
+      typeof raw?.backgroundImageUrl === 'string' && raw.backgroundImageUrl.trim().length > 0
+        ? raw.backgroundImageUrl
+        : null,
+    collectedHighlightImages: Array.isArray(raw?.collectedHighlightImages)
+      ? raw.collectedHighlightImages
+          .map((item) => String(item))
+          .filter((item) => item.trim().length > 0)
+      : DEFAULT_READER_SETTINGS.collectedHighlightImages,
     brightness:
       typeof raw?.brightness === 'number'
         ? Math.min(1, Math.max(0.35, raw.brightness))
@@ -453,6 +483,7 @@ export default function ReaderScreen() {
     null
   );
   const [showDebug, setShowDebug] = useState(false);
+  const [iconicModalNodeId, setIconicModalNodeId] = useState<string | null>(null);
   const tapStartRef = useRef<{ x: number; y: number; ts: number } | null>(null);
   const [rawProgressDebug, setRawProgressDebug] = useState<{
     currentNodeId: string | null;
@@ -468,6 +499,16 @@ export default function ReaderScreen() {
     if (!progressState) return null;
     return nodeMap.get(progressState.currentNodeId) ?? null;
   }, [nodeMap, progressState]);
+  const rollbackCandidates = useMemo(() => {
+    if (!story || !progressState) return [];
+    return story.nodes
+      .filter(
+        (node) =>
+          progressState.visitedNodeIds.includes(node.id) &&
+          node.id !== progressState.currentNodeId
+      )
+      .slice(0, 18);
+  }, [progressState, story]);
   const readerTextColor = useMemo(
     () => getReadableTextColor(settings.backgroundColor),
     [settings.backgroundColor]
@@ -479,6 +520,11 @@ export default function ReaderScreen() {
   const readerBorderColor = useMemo(
     () => withAlpha(readerTextColor, 0.18),
     [readerTextColor]
+  );
+  const hasBackgroundImage = Boolean(settings.backgroundImageUrl);
+  const backgroundImageSource = useMemo(
+    () => resolveStoryImageSource(settings.backgroundImageUrl),
+    [settings.backgroundImageUrl]
   );
   const effectiveMainlineOnly = routePureMode || settings.mainlineOnly;
   const isPanelOpen = showToolbar && activePanel !== null;
@@ -614,6 +660,125 @@ export default function ReaderScreen() {
     setProgressState(rebuilt.progress);
   }
 
+  function rollbackToNode(targetNodeId: string): boolean {
+    if (!story || !progressState) return false;
+    if (targetNodeId === progressState.currentNodeId) return false;
+    if (!progressState.visitedNodeIds.includes(targetNodeId)) return false;
+
+    const rebuiltHistory: ChoiceRecord[] = [];
+    const rebuiltVisited = new Set<string>();
+    let cursorId: string | null = story.startNodeId;
+    const safety = new Set<string>();
+
+    while (cursorId && !safety.has(cursorId)) {
+      safety.add(cursorId);
+      rebuiltVisited.add(cursorId);
+      if (cursorId === targetNodeId) break;
+
+      const node = nodeMap.get(cursorId);
+      if (!node) break;
+      if (node.type === 'choice' && node.choices && node.choices.length > 0) {
+        const record = findChoiceRecord(progressState.choiceHistory, node.id);
+        if (!record) break;
+        const selected = resolveChoice(node, record);
+        if (!selected) break;
+        rebuiltHistory.push(record);
+        cursorId = selected.targetNodeId;
+      } else {
+        cursorId = node.nextNodeId ?? null;
+      }
+    }
+
+    if (!rebuiltVisited.has(targetNodeId)) return false;
+
+    const rebuilt = buildContentFromProgress(
+      story,
+      nodeMap,
+      {
+        currentNodeId: targetNodeId,
+        choiceHistory: rebuiltHistory,
+        visitedNodeIds: Array.from(rebuiltVisited),
+      },
+      effectiveMainlineOnly
+    );
+    setDisplayedNodeIds(rebuilt.displayedNodeIds);
+    setProgressState(rebuilt.progress);
+    return true;
+  }
+
+  function collectHighlightImage(imageUrl: string) {
+    if (!imageUrl) return;
+    setSettings((prev) => {
+      if (prev.collectedHighlightImages.includes(imageUrl)) return prev;
+      return {
+        ...prev,
+        collectedHighlightImages: [...prev.collectedHighlightImages, imageUrl],
+      };
+    });
+  }
+
+  function setHighlightAsBackground(imageUrl: string) {
+    if (!imageUrl) return;
+    setSettings((prev) => ({
+      ...prev,
+      backgroundImageUrl: imageUrl,
+      collectedHighlightImages: prev.collectedHighlightImages.includes(imageUrl)
+        ? prev.collectedHighlightImages
+        : [...prev.collectedHighlightImages, imageUrl],
+    }));
+  }
+
+  function openIconicModal(node: StoryNode) {
+    if (!node.iconicScene?.imageUrl) return;
+    setIconicModalNodeId(node.id);
+  }
+
+  function closeIconicModal() {
+    setIconicModalNodeId(null);
+  }
+
+  function renderNodeContent(node: StoryNode) {
+    const baseTextStyle = [
+      styles.nodeContent,
+      {
+        fontSize: settings.fontSize,
+        lineHeight: settings.fontSize * settings.lineHeight,
+        color: readerTextColor,
+      },
+    ];
+
+    const source = getFullContent(node.content);
+    const iconic = node.iconicScene;
+    if (!iconic || !iconic.content || !iconic.imageUrl) {
+      return <Text style={baseTextStyle}>{source}</Text>;
+    }
+
+    const target = iconic.content.trim();
+    if (!target) return <Text style={baseTextStyle}>{source}</Text>;
+    const index = source.indexOf(target);
+    if (index < 0) return <Text style={baseTextStyle}>{source}</Text>;
+
+    const before = source.slice(0, index);
+    const matched = source.slice(index, index + target.length);
+    const after = source.slice(index + target.length);
+
+    return (
+      <View>
+        {before ? <Text style={baseTextStyle}>{before}</Text> : null}
+        <Pressable
+          style={[
+            styles.iconicInlineBlock,
+            { backgroundColor: withAlpha(readerTextColor, 0.12) },
+          ]}
+          onPress={() => openIconicModal(node)}
+        >
+          <Text style={baseTextStyle}>{matched}</Text>
+        </Pressable>
+        {after ? <Text style={baseTextStyle}>{after}</Text> : null}
+      </View>
+    );
+  }
+
   function handleReaderTouchStart(event: {
     nativeEvent: { pageX: number; pageY: number };
   }) {
@@ -716,6 +881,16 @@ export default function ReaderScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: settings.backgroundColor }]}>
+      {hasBackgroundImage && backgroundImageSource ? (
+        <View pointerEvents="none" style={styles.backgroundImageLayer}>
+          <Image
+            source={backgroundImageSource}
+            resizeMode="cover"
+            style={styles.backgroundImage}
+          />
+          <View style={styles.backgroundImageMask} />
+        </View>
+      ) : null}
       <View style={styles.readerLayer}>
         <ScrollView
           style={styles.readerScroll}
@@ -742,18 +917,7 @@ export default function ReaderScreen() {
                       {node.id} · {node.type}
                     </Text>
                   ) : null}
-                  <Text
-                    style={[
-                      styles.nodeContent,
-                      {
-                        fontSize: settings.fontSize,
-                        lineHeight: settings.fontSize * settings.lineHeight,
-                        color: readerTextColor,
-                      },
-                    ]}
-                  >
-                    {getFullContent(node.content)}
-                  </Text>
+                  {renderNodeContent(node)}
 
                   {node.type === 'choice' && node.choices && node.choices.length > 0 ? (
                     <View
@@ -1012,15 +1176,57 @@ export default function ReaderScreen() {
               {['#ffffff', '#f7f3e9', '#e8f0ff', '#111827'].map((color) => (
                 <Pressable
                   key={color}
-                  onPress={() => setSettings((prev) => ({ ...prev, backgroundColor: color }))}
+                  onPress={() =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      backgroundColor: color,
+                      backgroundImageUrl: null,
+                    }))
+                  }
                   style={[
                     styles.colorChipRect,
                     { backgroundColor: color },
-                    settings.backgroundColor === color && styles.colorChipRectActive,
+                    settings.backgroundImageUrl === null &&
+                      settings.backgroundColor === color &&
+                      styles.colorChipRectActive,
                   ]}
                 />
               ))}
             </View>
+            {settings.collectedHighlightImages.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.backgroundImageList}
+              >
+                {settings.collectedHighlightImages.map((imageUrl) => (
+                  <Pressable
+                    key={imageUrl}
+                    onPress={() =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        backgroundImageUrl: imageUrl,
+                      }))
+                    }
+                    style={[
+                      styles.backgroundImageItem,
+                      settings.backgroundImageUrl === imageUrl && styles.backgroundImageItemActive,
+                    ]}
+                  >
+                    {resolveStoryImageSource(imageUrl) ? (
+                      <Image
+                        source={resolveStoryImageSource(imageUrl) as ImageSourcePropType}
+                        style={styles.backgroundImagePreview}
+                      />
+                    ) : (
+                      <View style={styles.backgroundImagePreviewFallback}>
+                        <Text style={styles.backgroundImagePreviewFallbackText}>N/A</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ) : null}
           </View>
 
           <View style={styles.panelDivider} />
@@ -1082,6 +1288,26 @@ export default function ReaderScreen() {
           >
             <Text style={styles.panelButtonText}>{t('reader.rollbackLastChoice')}</Text>
           </Pressable>
+          {rollbackCandidates.length > 0 ? (
+            <View style={styles.rollbackList}>
+              {rollbackCandidates.map((node) => (
+                <Pressable
+                  key={node.id}
+                  style={styles.rollbackItem}
+                  onPress={() => {
+                    const ok = rollbackToNode(node.id);
+                    if (ok) {
+                      setActivePanel(null);
+                    }
+                  }}
+                >
+                  <Text style={styles.rollbackItemText} numberOfLines={1}>
+                    {node.id}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
         </View>
       ) : null}
       {showToolbar && activePanel === 'characters' ? (
@@ -1100,6 +1326,71 @@ export default function ReaderScreen() {
           </View>
         </View>
       ) : null}
+      <Modal
+        visible={iconicModalNodeId !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={closeIconicModal}
+      >
+        <View style={styles.iconicModalRoot}>
+          <Pressable style={styles.iconicModalBackdrop} onPress={closeIconicModal} />
+          {iconicModalNodeId ? (
+            <View style={styles.iconicModalCenter}>
+              {(() => {
+                const node = nodeMap.get(iconicModalNodeId) ?? null;
+                const imageUrl = node?.iconicScene?.imageUrl ?? '';
+                const collected = settings.collectedHighlightImages.includes(imageUrl);
+                const resolvedImageSource = resolveStoryImageSource(imageUrl);
+                return (
+                  <>
+                    <View style={styles.iconicModalImageCard}>
+                      {resolvedImageSource ? (
+                        <Image
+                          source={resolvedImageSource}
+                          style={styles.iconicModalImage}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View style={styles.iconicModalPlaceholder}>
+                          <Text style={styles.iconicModalPlaceholderText}>
+                            {t('reader.iconicNoPreview')}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    {!collected ? (
+                      <View style={styles.iconicModalActions}>
+                        <Pressable
+                          style={styles.iconicModalActionButton}
+                          onPress={() => {
+                            setHighlightAsBackground(imageUrl);
+                            closeIconicModal();
+                          }}
+                        >
+                          <Text style={styles.iconicModalActionText}>
+                            {t('reader.setAsBackground')}
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          style={styles.iconicModalActionButton}
+                          onPress={() => {
+                            collectHighlightImage(imageUrl);
+                            closeIconicModal();
+                          }}
+                        >
+                          <Text style={styles.iconicModalActionText}>
+                            {t('reader.collectHighlight')}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    ) : null}
+                  </>
+                );
+              })()}
+            </View>
+          ) : null}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1156,6 +1447,17 @@ const styles = StyleSheet.create({
   },
   readerLayer: {
     flex: 1,
+  },
+  backgroundImageLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  backgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.48,
+  },
+  backgroundImageMask: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.62)',
   },
   readerScroll: {
     flex: 1,
@@ -1215,6 +1517,12 @@ const styles = StyleSheet.create({
   },
   nodeCard: {
     marginTop: 20,
+  },
+  iconicInlineBlock: {
+    marginVertical: 6,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   nodeDebugTitle: {
     fontWeight: '700',
@@ -1390,6 +1698,39 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#111827',
   },
+  backgroundImageList: {
+    marginTop: 10,
+    gap: 8,
+    paddingRight: 6,
+  },
+  backgroundImageItem: {
+    width: 78,
+    height: 46,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    overflow: 'hidden',
+  },
+  backgroundImageItemActive: {
+    borderWidth: 2,
+    borderColor: '#111827',
+  },
+  backgroundImagePreview: {
+    width: '100%',
+    height: '100%',
+  },
+  backgroundImagePreviewFallback: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#374151',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backgroundImagePreviewFallbackText: {
+    color: '#e5e7eb',
+    fontSize: 11,
+    fontWeight: '600',
+  },
   pureRow: {
     marginTop: 4,
     flexDirection: 'row',
@@ -1491,6 +1832,27 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginBottom: 8,
   },
+  rollbackList: {
+    marginTop: 8,
+    maxHeight: 180,
+    borderTopWidth: 1,
+    borderColor: '#e5e7eb',
+    paddingTop: 8,
+    gap: 6,
+  },
+  rollbackItem: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#f9fafb',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  rollbackItemText: {
+    color: '#374151',
+    fontSize: 12,
+    fontWeight: '500',
+  },
   characterList: {
     marginTop: 6,
     flexDirection: 'row',
@@ -1509,5 +1871,59 @@ const styles = StyleSheet.create({
     color: '#111827',
     fontSize: 12,
     fontWeight: '600',
+  },
+  iconicModalRoot: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconicModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  iconicModalCenter: {
+    width: '86%',
+    alignItems: 'center',
+  },
+  iconicModalImageCard: {
+    width: '100%',
+    aspectRatio: 302 / 402,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#111827',
+  },
+  iconicModalImage: {
+    width: '100%',
+    height: '100%',
+  },
+  iconicModalPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    backgroundColor: '#1f2937',
+  },
+  iconicModalPlaceholderText: {
+    color: '#d1d5db',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  iconicModalActions: {
+    marginTop: 16,
+    flexDirection: 'row',
+    gap: 14,
+  },
+  iconicModalActionButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  iconicModalActionText: {
+    color: '#111827',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
