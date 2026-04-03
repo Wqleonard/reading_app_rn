@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -497,6 +497,10 @@ export default function ReaderScreen() {
     null
   );
   const branchScrollRef = useRef<ScrollView>(null);
+  const readerScrollRef = useRef<ScrollView>(null);
+  const scrollPositionRef = useRef(0);
+  const pendingInitialScrollRef = useRef(0);
+  const hasAppliedInitialScrollRef = useRef(false);
   const [showDebug, setShowDebug] = useState(false);
   const [iconicModalNodeId, setIconicModalNodeId] = useState<string | null>(null);
   const tapStartRef = useRef<{ x: number; y: number; ts: number } | null>(null);
@@ -593,11 +597,45 @@ export default function ReaderScreen() {
   const topBarHeight = insets.top + 48;
   const bottomBarHeight = insets.bottom + 72;
 
+  const persistReadingProgress = useCallback(() => {
+    if (!hydrated || !story || !progressState) return;
+    const percentage =
+      story.nodes.length > 0
+        ? Math.min(
+            100,
+            Math.round(
+              (progressState.visitedNodeIds.length / story.nodes.length) * 100
+            )
+          )
+        : 0;
+    setProgressPercentage(percentage);
+    void readingProgressRepository.upsert({
+      storyId: story.id,
+      currentNodeId: progressState.currentNodeId,
+      choiceHistoryJson: JSON.stringify(
+        progressState.choiceHistory.map((record) => ({
+          node_id: record.nodeId,
+          choice_id: record.choiceId,
+          timestamp: record.timestamp,
+        }))
+      ),
+      visitedNodeIdsJson: JSON.stringify(progressState.visitedNodeIds),
+      lastReadAtMs: Date.now(),
+      readDuration: 0,
+      scrollPosition: scrollPositionRef.current,
+      pageIndex: 0,
+      progressPercentage: percentage,
+    });
+  }, [hydrated, progressState, story]);
+
   useEffect(() => {
     let mounted = true;
     async function bootstrapReader() {
       if (!storyId || !story) return;
       setHydrated(false);
+      hasAppliedInitialScrollRef.current = false;
+      pendingInitialScrollRef.current = 0;
+      scrollPositionRef.current = 0;
       const savedSettings = await kv.getJson<Partial<ReaderSettings>>(READER_SETTINGS_KEY);
       const normalizedSettings = normalizeReaderSettings(savedSettings);
       setSettings(normalizedSettings);
@@ -632,6 +670,12 @@ export default function ReaderScreen() {
       setDisplayedNodeIds(built.displayedNodeIds);
       setProgressState(built.progress);
       setRestoredFromProgress(Boolean(row));
+      const restoredScroll =
+        typeof row?.scroll_position === 'number' && row.scroll_position > 0
+          ? row.scroll_position
+          : 0;
+      pendingInitialScrollRef.current = restoredScroll;
+      scrollPositionRef.current = restoredScroll;
       setProgressPercentage(
         row?.progress_percentage ??
           (story.nodes.length > 0
@@ -648,35 +692,28 @@ export default function ReaderScreen() {
   }, [nodeMap, routePureMode, story, storyId]);
 
   useEffect(() => {
-    if (!hydrated || !story || !progressState) return;
-    const percentage =
-      story.nodes.length > 0
-        ? Math.min(
-            100,
-            Math.round(
-              (progressState.visitedNodeIds.length / story.nodes.length) * 100
-            )
-          )
-        : 0;
-    setProgressPercentage(percentage);
-    void readingProgressRepository.upsert({
-      storyId: story.id,
-      currentNodeId: progressState.currentNodeId,
-      choiceHistoryJson: JSON.stringify(
-        progressState.choiceHistory.map((record) => ({
-          node_id: record.nodeId,
-          choice_id: record.choiceId,
-          timestamp: record.timestamp,
-        }))
-      ),
-      visitedNodeIdsJson: JSON.stringify(progressState.visitedNodeIds),
-      lastReadAtMs: Date.now(),
-      readDuration: 0,
-      scrollPosition: 0,
-      pageIndex: 0,
-      progressPercentage: percentage,
-    });
-  }, [hydrated, progressState, story]);
+    persistReadingProgress();
+  }, [persistReadingProgress]);
+
+  useEffect(() => {
+    if (!hydrated || hasAppliedInitialScrollRef.current) return;
+    const scrollY = pendingInitialScrollRef.current;
+    if (scrollY <= 0) {
+      hasAppliedInitialScrollRef.current = true;
+      return;
+    }
+    const timer = setTimeout(() => {
+      readerScrollRef.current?.scrollTo({ y: scrollY, animated: false });
+      hasAppliedInitialScrollRef.current = true;
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [displayedNodeIds, hydrated]);
+
+  useEffect(() => {
+    return () => {
+      persistReadingProgress();
+    };
+  }, [persistReadingProgress]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -883,6 +920,12 @@ export default function ReaderScreen() {
     }
   }
 
+  function handleReaderScroll(event: {
+    nativeEvent: { contentOffset: { y: number } };
+  }) {
+    scrollPositionRef.current = Math.max(0, event.nativeEvent.contentOffset.y);
+  }
+
   async function restartReading() {
     if (!story) return;
     await readingProgressRepository.clearByStoryId(story.id);
@@ -970,8 +1013,13 @@ export default function ReaderScreen() {
       ) : null}
       <View style={styles.readerLayer}>
         <ScrollView
+          ref={readerScrollRef}
           style={styles.readerScroll}
           scrollEnabled={!isPanelOpen}
+          onScroll={handleReaderScroll}
+          onMomentumScrollEnd={persistReadingProgress}
+          onScrollEndDrag={persistReadingProgress}
+          scrollEventThrottle={64}
           onTouchStart={handleReaderTouchStart}
           onTouchEnd={handleReaderTouchEnd}
           contentContainerStyle={[

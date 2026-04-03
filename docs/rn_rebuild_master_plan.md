@@ -138,6 +138,9 @@ reading-app-rn/
   - 分类筛选
   - 焦点轮播
   - 继续阅读卡片（来自 `reading_progress`）
+  - 瀑布流实现说明：
+    - Flutter：`flutter_staggered_grid_view`（`MasonryGridView`）
+    - RN（当前）：自定义双列瀑布流（左右列分发 + 动态 `aspectRatio`），位于 `app/(tabs)/square.tsx`
 
 ## 5.3 邂逅抽卡
 - Flutter 参考：
@@ -337,6 +340,7 @@ reading-app-rn/
 | T-006 | 阅读器核心功能 | doing | 已完成连续渲染/选择跳转/进度恢复与回写/设置面板（滑轨/主题联动）持久化、亮度蒙层、高光图点击弹层+收录设背景（含本地资源迁移）、分支图面板自绘与回滚规则对齐、角色弹层（底部一体化容器+横向角色卡+解锁态+点击规则）对齐；角色卡图片缩放对齐与开场动画遮罩层迁移已记录为低优先级暂缓项 |
 | T-007 | 聊天与 AI | doing | Phase 6 已启动：先落聊天 UI 与消息状态机，再接历史持久化与 AI API |
 | T-008 | 性能与回归 | todo | Phase 7 |
+| T-009 | Tabs 视觉与交互对齐专项 | doing | 推荐 Tab 已按 Flutter 对齐（视频状态机/黑色底栏联动/自动播放修复）；广场 Tab 正在按 Flutter 结构与样式 1:1 迁移 |
 
 ---
 
@@ -344,7 +348,7 @@ reading-app-rn/
 
 下次直接按以下方式继续：
 1. 先读本文件：`reading-app-rn/docs/rn_rebuild_master_plan.md`
-2. 当前从 `Phase 6 / T-007` 继续推进（阅读器暂缓项先记录，后续回补）
+2. 当前优先从 `T-009 Tabs 视觉与交互对齐专项` 继续（先完成广场，再推进邂逅与我的）
 3. 每完成一个子任务，更新：
    - 任务状态表
    - 风险与问题记录
