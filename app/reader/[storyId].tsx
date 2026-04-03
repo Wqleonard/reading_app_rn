@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
+  Animated,
+  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -46,6 +48,90 @@ const DEFAULT_READER_SETTINGS: ReaderSettings = {
   brightness: 1,
   mainlineOnly: false,
 };
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+type TrackSliderProps = {
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+  leftLabel: string;
+  rightLabel: string;
+};
+
+function TrackSlider(props: TrackSliderProps) {
+  const { value, min, max, onChange, leftLabel, rightLabel } = props;
+  const [trackWidth, setTrackWidth] = useState(0);
+  const thumbX = useRef(new Animated.Value(0)).current;
+  const draftValueRef = useRef(value);
+  const thumbStartXRef = useRef(0);
+
+  function getThumbLeftByValue(targetValue: number, width: number): number {
+    const ratio = clamp((targetValue - min) / (max - min), 0, 1);
+    return clamp(ratio * (width - 20), 0, width - 20);
+  }
+
+  useEffect(() => {
+    draftValueRef.current = value;
+    if (trackWidth > 0) {
+      thumbX.setValue(getThumbLeftByValue(value, trackWidth));
+    }
+  }, [value, trackWidth, thumbX]);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (event) => {
+          if (trackWidth <= 0) return;
+          const currentLeft = getThumbLeftByValue(draftValueRef.current, trackWidth);
+          thumbStartXRef.current = currentLeft;
+          // Keep current position on touch-down to avoid first-frame jump artifacts.
+          thumbX.setValue(currentLeft);
+        },
+        onPanResponderMove: (_event, gestureState) => {
+          if (trackWidth <= 0) return;
+          const nextLeft = clamp(
+            thumbStartXRef.current + gestureState.dx,
+            0,
+            Math.max(0, trackWidth - 20)
+          );
+          thumbX.setValue(nextLeft);
+          const t = nextLeft / Math.max(1, trackWidth - 20);
+          draftValueRef.current = min + (max - min) * t;
+        },
+        onPanResponderRelease: () => onChange(draftValueRef.current),
+        onPanResponderTerminate: () => onChange(draftValueRef.current),
+      }),
+    [max, min, onChange, thumbX, trackWidth]
+  );
+
+  return (
+    <View style={styles.sliderRow}>
+      <Text style={styles.sliderEdgeLabel}>{leftLabel}</Text>
+      <View
+        style={styles.sliderTrackWrap}
+        onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
+        {...panResponder.panHandlers}
+      >
+        <View style={styles.sliderTrack} />
+        <Animated.View
+          style={[
+            styles.sliderThumb,
+            {
+              left: thumbX,
+            },
+          ]}
+        />
+      </View>
+      <Text style={styles.sliderEdgeLabel}>{rightLabel}</Text>
+    </View>
+  );
+}
 
 function getNodeMap(story: StoryWithNodes): Map<string, StoryNode> {
   return new Map(story.nodes.map((node) => [node.id, node]));
@@ -340,6 +426,7 @@ export default function ReaderScreen() {
     return nodeMap.get(progressState.currentNodeId) ?? null;
   }, [nodeMap, progressState]);
   const effectiveMainlineOnly = routePureMode || settings.mainlineOnly;
+  const isPanelOpen = showToolbar && activePanel !== null;
   const topBarHeight = insets.top + 48;
   const bottomBarHeight = insets.bottom + 72;
 
@@ -429,7 +516,10 @@ export default function ReaderScreen() {
   }, [hydrated, progressState, story]);
 
   useEffect(() => {
-    void kv.setJson(READER_SETTINGS_KEY, settings);
+    const timer = setTimeout(() => {
+      void kv.setJson(READER_SETTINGS_KEY, settings);
+    }, 180);
+    return () => clearTimeout(timer);
   }, [settings]);
 
   useEffect(() => {
@@ -472,6 +562,7 @@ export default function ReaderScreen() {
   function handleReaderTouchStart(event: {
     nativeEvent: { pageX: number; pageY: number };
   }) {
+    if (isPanelOpen) return;
     tapStartRef.current = {
       x: event.nativeEvent.pageX,
       y: event.nativeEvent.pageY,
@@ -482,6 +573,7 @@ export default function ReaderScreen() {
   function handleReaderTouchEnd(event: {
     nativeEvent: { pageX: number; pageY: number };
   }) {
+    if (isPanelOpen) return;
     const start = tapStartRef.current;
     tapStartRef.current = null;
     if (!start) return;
@@ -571,7 +663,8 @@ export default function ReaderScreen() {
     <View style={[styles.container, { backgroundColor: settings.backgroundColor }]}>
       <View style={styles.readerLayer}>
         <ScrollView
-          style={styles.container}
+          style={styles.readerScroll}
+          scrollEnabled={!isPanelOpen}
           onTouchStart={handleReaderTouchStart}
           onTouchEnd={handleReaderTouchEnd}
           contentContainerStyle={[
@@ -725,7 +818,7 @@ export default function ReaderScreen() {
               style={styles.toolbarButton}
               onPress={() => {
                 setActivePanel('settings');
-                setShowSettings((prev) => !prev);
+                setShowSettings(true);
               }}
             >
               <Ionicons name="settings-outline" size={22} color="#111827" />
@@ -734,125 +827,98 @@ export default function ReaderScreen() {
         </View>
       </View>
 
+      {isPanelOpen ? (
+        <Pressable
+          style={styles.panelBackdrop}
+          onPress={() => {
+            setShowSettings(false);
+            setActivePanel(null);
+          }}
+        />
+      ) : null}
+
       {showSettings && activePanel === 'settings' ? (
-        <View style={[styles.settingsPanel, { bottom: bottomBarHeight + 10 }]}>
-          <Text style={styles.settingsPanelTitle}>{t('reader.settingsTitle')}</Text>
+        <View style={[styles.settingsPanel, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.panelGrabber} />
+          <View style={styles.settingsHeader}>
+            <Text style={styles.settingsPanelTitle}>{t('reader.settingsTitle')}</Text>
+            <Pressable onPress={() => setSettings(DEFAULT_READER_SETTINGS)}>
+              <Text style={styles.resetText}>{t('reader.resetSettings')}</Text>
+            </Pressable>
+          </View>
 
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>{t('reader.fontSize')}: {settings.fontSize.toFixed(0)}</Text>
-            <View style={styles.settingActions}>
-              <Pressable
-                style={styles.settingActionButton}
-                onPress={() =>
+          <View style={styles.settingSection}>
+            <Text style={styles.settingLabel}>{t('reader.fontSize')}</Text>
+            <TrackSlider
+              value={settings.fontSize}
+              min={14}
+              max={28}
+              leftLabel="A"
+              rightLabel="A"
+              onChange={(next) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  fontSize: Number(next.toFixed(1)),
+                }))
+              }
+            />
+          </View>
+
+          <View style={styles.settingTwoCol}>
+            <View style={styles.settingSectionCol}>
+              <Text style={styles.settingLabel}>{t('reader.horizontalPadding')}</Text>
+              <TrackSlider
+                value={settings.horizontalPadding}
+                min={12}
+                max={36}
+                leftLabel="S"
+                rightLabel="L"
+                onChange={(next) =>
                   setSettings((prev) => ({
                     ...prev,
-                    fontSize: Math.max(14, prev.fontSize - 1),
+                    horizontalPadding: Number(next.toFixed(1)),
                   }))
                 }
-              >
-                <Text style={styles.settingActionText}>-</Text>
-              </Pressable>
-              <Pressable
-                style={styles.settingActionButton}
-                onPress={() =>
+              />
+            </View>
+            <View style={styles.settingSectionCol}>
+              <Text style={styles.settingLabel}>{t('reader.lineHeight')}</Text>
+              <TrackSlider
+                value={settings.lineHeight}
+                min={1.4}
+                max={2.4}
+                leftLabel="-"
+                rightLabel="+"
+                onChange={(next) =>
                   setSettings((prev) => ({
                     ...prev,
-                    fontSize: Math.min(28, prev.fontSize + 1),
+                    lineHeight: Number(next.toFixed(2)),
                   }))
                 }
-              >
-                <Text style={styles.settingActionText}>+</Text>
-              </Pressable>
+              />
             </View>
           </View>
 
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>{t('reader.lineHeight')}: {settings.lineHeight.toFixed(2)}</Text>
-            <View style={styles.settingActions}>
-              <Pressable
-                style={styles.settingActionButton}
-                onPress={() =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    lineHeight: Math.max(1.4, Number((prev.lineHeight - 0.1).toFixed(2))),
-                  }))
-                }
-              >
-                <Text style={styles.settingActionText}>-</Text>
-              </Pressable>
-              <Pressable
-                style={styles.settingActionButton}
-                onPress={() =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    lineHeight: Math.min(2.4, Number((prev.lineHeight + 0.1).toFixed(2))),
-                  }))
-                }
-              >
-                <Text style={styles.settingActionText}>+</Text>
-              </Pressable>
-            </View>
+          <View style={styles.panelDivider} />
+
+          <View style={styles.settingSection}>
+            <Text style={styles.settingLabel}>{t('reader.brightness')}</Text>
+            <TrackSlider
+              value={settings.brightness}
+              min={0.35}
+              max={1}
+              leftLabel="◐"
+              rightLabel="◑"
+              onChange={(next) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  brightness: Number(next.toFixed(2)),
+                }))
+              }
+            />
           </View>
 
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>
-              {t('reader.horizontalPadding')}: {settings.horizontalPadding.toFixed(0)}
-            </Text>
-            <View style={styles.settingActions}>
-              <Pressable
-                style={styles.settingActionButton}
-                onPress={() =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    horizontalPadding: Math.max(12, prev.horizontalPadding - 2),
-                  }))
-                }
-              >
-                <Text style={styles.settingActionText}>-</Text>
-              </Pressable>
-              <Pressable
-                style={styles.settingActionButton}
-                onPress={() =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    horizontalPadding: Math.min(36, prev.horizontalPadding + 2),
-                  }))
-                }
-              >
-                <Text style={styles.settingActionText}>+</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>{t('reader.brightness')}: {Math.round(settings.brightness * 100)}%</Text>
-            <View style={styles.settingActions}>
-              <Pressable
-                style={styles.settingActionButton}
-                onPress={() =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    brightness: Math.max(0.35, Number((prev.brightness - 0.05).toFixed(2))),
-                  }))
-                }
-              >
-                <Text style={styles.settingActionText}>-</Text>
-              </Pressable>
-              <Pressable
-                style={styles.settingActionButton}
-                onPress={() =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    brightness: Math.min(1, Number((prev.brightness + 0.05).toFixed(2))),
-                  }))
-                }
-              >
-                <Text style={styles.settingActionText}>+</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.settingRow}>
+          <View style={styles.settingSection}>
             <Text style={styles.settingLabel}>{t('reader.background')}</Text>
             <View style={styles.colorRow}>
               {['#ffffff', '#f7f3e9', '#e8f0ff', '#111827'].map((color) => (
@@ -860,40 +926,41 @@ export default function ReaderScreen() {
                   key={color}
                   onPress={() => setSettings((prev) => ({ ...prev, backgroundColor: color }))}
                   style={[
-                    styles.colorChip,
+                    styles.colorChipRect,
                     { backgroundColor: color },
-                    settings.backgroundColor === color && styles.colorChipActive,
+                    settings.backgroundColor === color && styles.colorChipRectActive,
                   ]}
                 />
               ))}
             </View>
           </View>
 
-          <Pressable
-            style={styles.mainlineToggle}
-            disabled={routePureMode}
-            onPress={() => setSettings((prev) => ({ ...prev, mainlineOnly: !prev.mainlineOnly }))}
-          >
-            <Text style={[styles.settingLabel, routePureMode && styles.settingDisabled]}>
-              {t('reader.mainlineOnly')}: {effectiveMainlineOnly ? t('reader.modePure') : t('reader.modeInteractive')}
-            </Text>
-          </Pressable>
+          <View style={styles.panelDivider} />
 
-          <View style={styles.panelBottomRow}>
+          <View style={styles.pureRow}>
+            <Text style={[styles.settingLabel, routePureMode && styles.settingDisabled]}>
+              {t('reader.mainlineOnly')}
+            </Text>
             <Pressable
-              style={styles.panelButton}
-              onPress={() => setSettings(DEFAULT_READER_SETTINGS)}
+              disabled={routePureMode}
+              style={[
+                styles.toggleTrack,
+                effectiveMainlineOnly && styles.toggleTrackActive,
+                routePureMode && styles.toggleTrackDisabled,
+              ]}
+              onPress={() =>
+                setSettings((prev) => ({
+                  ...prev,
+                  mainlineOnly: !prev.mainlineOnly,
+                }))
+              }
             >
-              <Text style={styles.panelButtonText}>{t('reader.resetSettings')}</Text>
-            </Pressable>
-            <Pressable
-              style={styles.panelButton}
-              onPress={() => {
-                setShowSettings(false);
-                setActivePanel(null);
-              }}
-            >
-              <Text style={styles.panelButtonText}>{t('reader.closeSettings')}</Text>
+              <View
+                style={[
+                  styles.toggleThumb,
+                  effectiveMainlineOnly && styles.toggleThumbActive,
+                ]}
+              />
             </Pressable>
           </View>
         </View>
@@ -1001,6 +1068,10 @@ const styles = StyleSheet.create({
   },
   readerLayer: {
     flex: 1,
+  },
+  readerScroll: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
   topToolbar: {
     position: 'absolute',
@@ -1115,33 +1186,148 @@ const styles = StyleSheet.create({
   },
   settingsPanel: {
     position: 'absolute',
-    left: 12,
-    right: 12,
-    bottom: 106,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderTopWidth: 1,
+    borderColor: '#e5e7eb',
     backgroundColor: '#ffffff',
-    padding: 12,
-    gap: 8,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    zIndex: 20,
+  },
+  panelBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    zIndex: 10,
+  },
+  panelGrabber: {
+    alignSelf: 'center',
+    width: 64,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: '#d1d5db',
+    marginBottom: 12,
+  },
+  settingsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   settingsPanelTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    marginBottom: 4,
+    color: '#111827',
   },
-  settingRow: {
+  resetText: {
+    fontSize: 13,
+    color: '#6b7280',
+  },
+  settingSection: {
+    marginBottom: 14,
+  },
+  settingTwoCol: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
+    gap: 16,
+    marginBottom: 6,
+  },
+  settingSectionCol: {
+    flex: 1,
   },
   settingLabel: {
     color: '#1f2937',
-    fontSize: 13,
+    fontSize: 14,
+    marginBottom: 10,
+    fontWeight: '500',
   },
   settingDisabled: {
     color: '#9ca3af',
+  },
+  sliderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sliderEdgeLabel: {
+    width: 18,
+    textAlign: 'center',
+    color: '#6b7280',
+    fontSize: 12,
+  },
+  sliderTrackWrap: {
+    flex: 1,
+    height: 30,
+    borderRadius: 999,
+    backgroundColor: '#e5e7eb',
+    marginHorizontal: 8,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  sliderTrack: {
+    height: 30,
+    borderRadius: 999,
+    backgroundColor: '#e5e7eb',
+  },
+  sliderThumb: {
+    position: 'absolute',
+    top: 5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+  },
+  panelDivider: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginVertical: 8,
+  },
+  colorRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  colorChipRect: {
+    width: 56,
+    height: 30,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  colorChipRectActive: {
+    borderWidth: 2,
+    borderColor: '#111827',
+  },
+  pureRow: {
+    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  toggleTrack: {
+    width: 48,
+    height: 28,
+    borderRadius: 999,
+    backgroundColor: '#d1d5db',
+    padding: 4,
+  },
+  toggleTrackActive: {
+    backgroundColor: '#2563eb',
+  },
+  toggleTrackDisabled: {
+    opacity: 0.6,
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    transform: [{ translateX: 0 }],
+  },
+  toggleThumbActive: {
+    transform: [{ translateX: 20 }],
   },
   settingActions: {
     flexDirection: 'row',
@@ -1159,10 +1345,6 @@ const styles = StyleSheet.create({
   settingActionText: {
     fontWeight: '700',
     color: '#111827',
-  },
-  colorRow: {
-    flexDirection: 'row',
-    gap: 8,
   },
   colorChip: {
     width: 24,
