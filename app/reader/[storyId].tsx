@@ -13,10 +13,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
 import { getStoryById } from '@/src/data/story/storyService';
 import type { StoryChoice, StoryNode, StoryWithNodes } from '@/src/data/story/types';
@@ -77,6 +79,20 @@ const DEFAULT_READER_SETTINGS: ReaderSettings = {
   brightness: 1,
   mainlineOnly: false,
 };
+
+function SelectionOptionIcon() {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M9 6L15 12L9 18"
+        stroke="#9CA3AF"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -504,6 +520,7 @@ export default function ReaderScreen() {
   const hasAppliedInitialScrollRef = useRef(false);
   const [showDebug, setShowDebug] = useState(false);
   const [iconicModalNodeId, setIconicModalNodeId] = useState<string | null>(null);
+  const [customChoiceInput, setCustomChoiceInput] = useState('');
   const tapStartRef = useRef<{ x: number; y: number; ts: number } | null>(null);
   const [rawProgressDebug, setRawProgressDebug] = useState<{
     currentNodeId: string | null;
@@ -594,6 +611,24 @@ export default function ReaderScreen() {
     [settings.backgroundImageUrl]
   );
   const effectiveMainlineOnly = routePureMode || settings.mainlineOnly;
+  const isUserCreatedStory = useMemo(() => {
+    if (!story) return false;
+    const metadata = story.metadata ?? {};
+    return (
+      metadata.is_user_created === true ||
+      metadata.source === 'ugc' ||
+      story.id.startsWith('custom_') ||
+      story.id.startsWith('ugc_')
+    );
+  }, [story]);
+  const shouldShowCustomChoiceInput =
+    !effectiveMainlineOnly &&
+    Boolean(
+      isUserCreatedStory ||
+        // TODO(reader-custom-input): remove this temporary story_001 fallback
+        // after UGC/custom story ingestion is wired in RN.
+        story?.id === 'story_001'
+    );
   const isPanelOpen = showToolbar && activePanel !== null;
   const topBarHeight = insets.top + 48;
   const bottomBarHeight = insets.bottom + 72;
@@ -883,7 +918,7 @@ export default function ReaderScreen() {
         <Pressable
           style={[
             styles.iconicInlineBlock,
-            { backgroundColor: withAlpha(readerTextColor, 0.12) },
+            { backgroundColor: 'rgba(0,93,255,0.04)' },
           ]}
           onPress={() => openIconicModal(node)}
         >
@@ -980,6 +1015,13 @@ export default function ReaderScreen() {
     );
     setDisplayedNodeIds(loaded.displayedNodeIds);
     setProgressState(loaded.progress);
+    setCustomChoiceInput('');
+  }
+
+  function handleCustomChoiceConfirm() {
+    const value = customChoiceInput.trim();
+    if (!value) return;
+    Alert.alert('', t('reader.customInputPending'));
   }
 
   if (!story) {
@@ -1007,7 +1049,12 @@ export default function ReaderScreen() {
           <Image
             source={backgroundImageSource}
             resizeMode="cover"
-            style={styles.backgroundImage}
+            style={styles.backgroundImageFill}
+          />
+          <Image
+            source={backgroundImageSource}
+            resizeMode="contain"
+            style={styles.backgroundImageContain}
           />
           <View style={styles.backgroundImageMask} />
         </View>
@@ -1046,37 +1093,44 @@ export default function ReaderScreen() {
                   {renderNodeContent(node)}
 
                   {node.type === 'choice' && node.choices && node.choices.length > 0 ? (
-                    <View
-                      style={[
-                        styles.choiceBox,
-                        {
-                          backgroundColor: settings.backgroundColor,
-                          borderColor: readerBorderColor,
-                        },
-                      ]}
-                    >
+                    <View style={styles.choiceBox}>
                       {!effectiveMainlineOnly ? (
                         <>
-                          <Text style={[styles.choiceTitle, { color: readerMutedTextColor }]}>
-                            {t('reader.choosePrompt')}
-                          </Text>
+                          <Text style={styles.choiceTitle}>{t('reader.choosePrompt')}</Text>
+                          <View style={styles.choiceTitleDivider} />
                           {node.choices.map((choice) => (
                             <Pressable
                               key={choice.id}
-                              style={[
-                                styles.choiceButton,
-                                {
-                                  backgroundColor: settings.backgroundColor,
-                                  borderColor: readerBorderColor,
-                                },
-                              ]}
+                              style={styles.choiceButton}
                               onPress={() => handleChoice(choice)}
                             >
-                              <Text style={[styles.choiceText, { color: readerTextColor }]}>
-                                {choice.text}
-                              </Text>
+                              <View style={styles.choiceIcon}>
+                                <SelectionOptionIcon />
+                              </View>
+                              <Text style={styles.choiceText}>{choice.text}</Text>
                             </Pressable>
                           ))}
+                          {shouldShowCustomChoiceInput ? (
+                            <View style={styles.customChoiceInputWrap}>
+                              <TextInput
+                                value={customChoiceInput}
+                                onChangeText={setCustomChoiceInput}
+                                style={styles.customChoiceInput}
+                                placeholder={t('reader.customInputPlaceholder')}
+                                placeholderTextColor="#9ca3af"
+                              />
+                              {customChoiceInput.trim().length > 0 ? (
+                                <Pressable
+                                  style={styles.customChoiceConfirmButton}
+                                  onPress={handleCustomChoiceConfirm}
+                                >
+                                  <Text style={styles.customChoiceConfirmText}>
+                                    {t('reader.customInputConfirm')}
+                                  </Text>
+                                </Pressable>
+                              ) : null}
+                            </View>
+                          ) : null}
                         </>
                       ) : (
                         <Text style={[styles.subtitle, { color: readerMutedTextColor }]}>
@@ -1656,7 +1710,11 @@ const styles = StyleSheet.create({
   backgroundImageLayer: {
     ...StyleSheet.absoluteFillObject,
   },
-  backgroundImage: {
+  backgroundImageFill: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.22,
+  },
+  backgroundImageContain: {
     ...StyleSheet.absoluteFillObject,
     opacity: 0.48,
   },
@@ -1725,9 +1783,10 @@ const styles = StyleSheet.create({
   },
   iconicInlineBlock: {
     marginVertical: 6,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    marginHorizontal: -8,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
   },
   nodeDebugTitle: {
     fontWeight: '700',
@@ -1742,27 +1801,79 @@ const styles = StyleSheet.create({
   },
   choiceBox: {
     marginTop: 20,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    padding: 12,
-    backgroundColor: '#ffffff',
+    width: '100%',
+    padding: 0,
+    backgroundColor: 'transparent',
   },
   choiceTitle: {
-    fontWeight: '700',
+    color: '#9ca3af',
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '500',
     marginBottom: 8,
+  },
+  choiceTitleDivider: {
+    height: 1,
+    backgroundColor: 'rgba(156,163,175,0.45)',
+    marginBottom: 17,
   },
   choiceButton: {
-    borderRadius: 8,
-    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    backgroundColor: '#f9fafb',
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 8,
+    borderColor: '#f3f4f6',
+    minHeight: 58,
+    paddingHorizontal: 17,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  choiceIcon: {
+    marginRight: 12,
   },
   choiceText: {
-    color: '#fff',
+    color: '#374151',
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: '500',
+  },
+  customChoiceInputWrap: {
+    marginTop: 0,
+    borderWidth: 1,
+    borderRadius: 12,
+    minHeight: 58,
+    paddingHorizontal: 17,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    borderColor: '#f3f4f6',
+    shadowColor: '#000000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  customChoiceInput: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: '400',
+    color: '#374151',
+    paddingVertical: 0,
+  },
+  customChoiceConfirmButton: {
+    marginLeft: 10,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#111827',
+  },
+  customChoiceConfirmText: {
+    color: '#ffffff',
+    fontSize: 12,
     fontWeight: '600',
   },
   endingText: {
