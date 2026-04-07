@@ -1,6 +1,8 @@
 import type { ImageSourcePropType } from 'react-native';
 
 const STORY_LOCAL_IMAGE_SOURCES: Record<string, ImageSourcePropType> = {
+  'assets/mock/我心归处是良人/images/cover.jpg': require('../assets/story/cover.jpg'),
+  'assets/mock/我心归处是良人/images/avatar.jpg': require('../assets/story/avatar.jpg'),
   'assets/mock/我心归处是良人/images/iconic_scene/scene_1.png': require('../assets/story/iconic_scene/scene_1.png'),
   'assets/mock/我心归处是良人/images/iconic_scene/scene_2.png': require('../assets/story/iconic_scene/scene_2.png'),
   'assets/mock/我心归处是良人/images/iconic_scene/scene_3.png': require('../assets/story/iconic_scene/scene_3.png'),
@@ -23,6 +25,9 @@ const STORY_LOCAL_IMAGE_SOURCES: Record<string, ImageSourcePropType> = {
   'assets/mock/我心归处是良人/images/赵秉入_avatar.png': require('../assets/story/avatars/avatar_zhaobingru.png'),
   'assets/mock/我心归处是良人/images/赵秉承_avatar.png': require('../assets/story/avatars/avatar_zhaobingcheng.png'),
   'assets/mock/我心归处是良人/images/暗卫十五_avatar.png': require('../assets/story/avatars/avatar_guard15.png'),
+  'assets/mock/我心归处是良人/images/赵秉入_cover.png': require('../assets/story/iconic_scene/scene_2.png'),
+  'assets/mock/我心归处是良人/images/赵秉承_cover.png': require('../assets/story/iconic_scene/scene_1.png'),
+  'assets/mock/我心归处是良人/images/暗卫十五_cover.png': require('../assets/story/iconic_scene/scene_3.png'),
 };
 
 export function resolveStoryImageSource(

@@ -2173,7 +2173,8 @@ const styles = StyleSheet.create({
     borderColor: '#ffffff',
   },
   characterPosterImage: {
-    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
   characterPosterImageLocked: {
     opacity: 0.4,
