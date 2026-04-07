@@ -59,6 +59,7 @@ const READER_SETTINGS_KEY = 'reader_settings_v1';
 const PANEL_CHAR_1_SOURCE = require('../../assets/story/reader_panel/panel_char_1.png');
 const PANEL_CHAR_2_SOURCE = require('../../assets/story/reader_panel/panel_char_2.png');
 const PANEL_LOCKED_SOURCE = require('../../assets/story/reader_panel/panel_locked_bg.png');
+const CHARACTER_POSTER_ASPECT_RATIO = 2 / 3;
 const CHARACTER_AVATAR_SOURCE_BY_ID: Record<string, ImageSourcePropType> = {
   story_001_char_002: require('../../assets/story/avatars/avatar_zhaobingru.png'),
   story_001_char_003: require('../../assets/story/avatars/avatar_zhaobingcheng.png'),
@@ -1490,7 +1491,7 @@ export default function ReaderScreen() {
                           styles.characterPosterImage,
                           !character.unlocked && styles.characterPosterImageLocked,
                         ]}
-                        resizeMode={character.unlocked ? 'contain' : 'cover'}
+                        resizeMode="cover"
                       />
                       {character.unlocked ? (
                         <LinearGradient
@@ -2139,7 +2140,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   characterListWrap: {
-    height: 261,
+    height: 196,
   },
   characterListScroll: {
     paddingHorizontal: 20,
@@ -2150,7 +2151,7 @@ const styles = StyleSheet.create({
   },
   characterPoster: {
     width: 98,
-    height: 214,
+    aspectRatio: CHARACTER_POSTER_ASPECT_RATIO,
     position: 'relative',
     borderRadius: 16,
     borderWidth: 2,

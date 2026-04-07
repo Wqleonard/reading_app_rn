@@ -74,6 +74,7 @@ const LOCKED_CHARACTERS: StoryDetailCharacter[] = [
     unlocked: false,
   },
 ];
+const CHARACTER_POSTER_ASPECT_RATIO = 2 / 3;
 
 const EXTRA_COMMENTS: StoryComment[] = [
   {
@@ -130,7 +131,7 @@ export default function StoryDetailScreen() {
     setVisitedNodeIds(visited);
     setProgressPercentage(
       row?.progress_percentage ??
-        (story.nodes.length > 0 ? Math.round((visited.length / story.nodes.length) * 100) : 0)
+      (story.nodes.length > 0 ? Math.round((visited.length / story.nodes.length) * 100) : 0)
     );
   }, [story]);
 
@@ -255,41 +256,38 @@ export default function StoryDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View
-          style={[
-            styles.headerBar,
-            { paddingTop: insets.top, height: 64 + insets.top },
-          ]}
+      <View style={{ height: insets.top }} />
+      <View style={styles.headerBar}>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.headerIconButton}
+          hitSlop={12}
         >
-          <Pressable
-            onPress={() => router.back()}
-            style={styles.headerIconButton}
-            hitSlop={12}
-          >
-            <Ionicons name="chevron-back" size={20} color="#111827" />
-          </Pressable>
-          <View style={styles.headerAuthorRow}>
-            <View style={styles.headerAvatarWrap}>
-              {resolvedAuthorAvatar ? (
-                <Image source={resolvedAuthorAvatar} style={styles.headerAvatar} resizeMode="cover" />
-              ) : (
-                <View style={styles.headerAvatarFallback}>
-                  <Ionicons name="person" size={16} color="#9ca3af" />
-                </View>
-              )}
-            </View>
-            <Text style={styles.headerAuthorName}>{story.author ?? '-'}</Text>
-            <Pressable
-              onPress={() => setIsFollowedAuthor((prev) => !prev)}
-              style={styles.followButton}
-            >
-              <Text style={styles.followButtonText}>
-                {isFollowedAuthor ? t('storyDetail.followed') : t('storyDetail.follow')}
-              </Text>
-            </Pressable>
+          <Ionicons name="chevron-back" size={20} color="#111827" />
+        </Pressable>
+        <View style={styles.headerAuthorRow}>
+          <View style={styles.headerAvatarWrap}>
+            {resolvedAuthorAvatar ? (
+              <Image source={resolvedAuthorAvatar} style={styles.headerAvatar} resizeMode="cover" />
+            ) : (
+              <View style={styles.headerAvatarFallback}>
+                <Ionicons name="person" size={16} color="#9ca3af" />
+              </View>
+            )}
           </View>
+          <Text style={styles.headerAuthorName}>{story.author ?? '-'}</Text>
+          <Pressable
+            onPress={() => setIsFollowedAuthor((prev) => !prev)}
+            style={styles.followButton}
+          >
+            <Text style={styles.followButtonText}>
+              {isFollowedAuthor ? t('storyDetail.followed') : t('storyDetail.follow')}
+            </Text>
+          </Pressable>
         </View>
+      </View>
+      <ScrollView contentContainerStyle={styles.content}>
+
 
         <View style={styles.coverWrap}>
           {resolvedCover ? (
@@ -390,7 +388,7 @@ export default function StoryDetailScreen() {
                           styles.characterPosterImage,
                           !character.unlocked && styles.characterPosterImageLocked,
                         ]}
-                        resizeMode={character.unlocked ? 'contain' : 'cover'}
+                        resizeMode="cover"
                       />
                     ) : null}
                     {!character.unlocked ? (
@@ -588,7 +586,8 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   headerBar: {
-    height: 64,
+    // height: 64,
+    paddingBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
@@ -763,7 +762,7 @@ const styles = StyleSheet.create({
   },
   characterPoster: {
     width: 98,
-    height: 214,
+    aspectRatio: CHARACTER_POSTER_ASPECT_RATIO,
     borderRadius: 16,
     borderWidth: 2,
     overflow: 'hidden',
