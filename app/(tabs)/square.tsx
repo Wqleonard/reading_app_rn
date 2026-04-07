@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
 import {
   useCallback,
   useEffect,
@@ -24,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { listStories } from '@/src/data/story/storyService';
 import { readingProgressRepository } from '@/src/storage/db/repositories/readingProgressRepository';
+import { AppNavigator } from '@/src/navigation/appNavigator';
 import type { ReadingProgressRow } from '@/src/storage/db/types';
 
 const SQUARE_BANNER_1 = require('../../assets/story/square/banner_story_1.png');
@@ -188,7 +188,6 @@ type ContinueReadingData = {
 
 export default function SquareScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const carouselRef = useRef<ScrollView | null>(null);
@@ -243,7 +242,7 @@ export default function SquareScreen() {
           </Pressable>
         </View>
       )),
-    [cardWidth, router, t]
+    [cardWidth, t]
   );
 
   const [leftStories, rightStories] = useMemo(() => {
@@ -311,7 +310,7 @@ export default function SquareScreen() {
   }, []);
 
   function openReader(storyId: string) {
-    router.push(`/reader/${storyId}`);
+    AppNavigator.toReader(storyId);
   }
 
   function openStoryDetail(storyId: string) {
@@ -320,7 +319,7 @@ export default function SquareScreen() {
     // Currently only one complete story detail exists in RN, so all entries
     // point to the same detail page for consistent QA.
     void storyId;
-    router.push(`/story/${FEED_DEFAULT_STORY_ID}`);
+    AppNavigator.toStoryDetail(FEED_DEFAULT_STORY_ID);
   }
 
   function renderStoryCard(story: SquareStory): ReactNode {
@@ -406,7 +405,7 @@ export default function SquareScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { marginTop: insets.top }]}>
-        <Pressable style={styles.searchButton} onPress={() => router.push('/search')}>
+        <Pressable style={styles.searchButton} onPress={() => AppNavigator.toSearch()}>
           <Ionicons name="search" size={20} color="#6b7280" />
         </Pressable>
         <Text style={styles.headerTitle}>{t('square.playgroundTitle')}</Text>

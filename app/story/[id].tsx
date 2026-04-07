@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -24,9 +24,10 @@ import {
   buildBranchColumns,
   buildBranchEdges,
 } from '@/src/features/reader/branch/storyBranchBuilder';
-import { resolveStoryImageSource } from '@/app/storyImageResolver';
+import { resolveStoryImageSource } from '@/src/utils/storyImageResolver';
 import { readingProgressRepository } from '@/src/storage/db/repositories/readingProgressRepository';
 import type { StoryComment } from '@/src/data/story/types';
+import { AppNavigator } from '@/src/navigation/appNavigator';
 
 function parseVisitedNodeIds(raw: string | null | undefined): string[] {
   if (!raw) return [];
@@ -109,7 +110,6 @@ const EXTRA_COMMENTS: StoryComment[] = [
 export default function StoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const story = id ? getStoryById(id) : null;
   const [visitedNodeIds, setVisitedNodeIds] = useState<string[]>([]);
@@ -212,7 +212,7 @@ export default function StoryDetailScreen() {
       Alert.alert('', t('storyDetail.characterLockedTip'));
       return;
     }
-    router.push(`/character/${character.id}`);
+    AppNavigator.toCharacterDetail(character.id);
   }
 
   function toggleCommentLike(comment: StoryComment) {
@@ -259,7 +259,7 @@ export default function StoryDetailScreen() {
       <View style={{ height: insets.top }} />
       <View style={styles.headerBar}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => AppNavigator.back()}
           style={styles.headerIconButton}
           hitSlop={12}
         >
@@ -520,14 +520,14 @@ export default function StoryDetailScreen() {
         />
         <Pressable
           style={styles.bottomActionButton}
-          onPress={() => router.push(`/reader/${story.id}?mode=pure`)}
+            onPress={() => AppNavigator.toReaderPure(story.id)}
         >
           <Text style={styles.bottomActionText}>{t('storyDetail.readPure')}</Text>
         </Pressable>
         <View style={styles.bottomActionGap} />
         <Pressable
           style={styles.bottomActionButton}
-          onPress={() => router.push(`/reader/${story.id}?mode=interactive`)}
+            onPress={() => AppNavigator.toReaderInteractive(story.id)}
         >
           <Text style={styles.bottomActionText}>{t('storyDetail.readInteractive')}</Text>
         </Pressable>

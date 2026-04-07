@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   Alert,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppNavigator } from '@/src/navigation/appNavigator';
 
 type SearchStory = {
   id: string;
@@ -90,63 +90,63 @@ const stories: SearchStory[] = [
 
 const characters: RankingCharacter[] = [
   {
-    id: 'char_pop_001',
+    id: 'char_001',
     name: '秦彻',
     tags: '爹系 · 引导型 · 霸总',
     popularity: 1,
     avatarSource: require('../../assets/story/characters/char_1.png'),
   },
   {
-    id: 'char_pop_002',
+    id: 'char_002',
     name: '黎深',
     tags: '智性恋 · 人夫 · 禁欲',
     popularity: 2,
     avatarSource: require('../../assets/story/characters/char_2.png'),
   },
   {
-    id: 'char_pop_003',
+    id: 'char_003',
     name: '夏以昼',
     tags: '年上 · 伪骨 · 妹控',
     popularity: 3,
     avatarSource: require('../../assets/story/characters/char_3.png'),
   },
   {
-    id: 'char_pop_004',
+    id: 'char_004',
     name: '德拉科·马尔福',
     tags: 'HP · 美强惨 · 口嫌体正直',
     popularity: 4,
     avatarSource: require('../../assets/story/characters/char_4.png'),
   },
   {
-    id: 'char_pop_005',
+    id: 'char_005',
     name: '汤姆·里德尔',
     tags: 'HP · 白切黑 · 阴湿男鬼',
     popularity: 5,
     avatarSource: require('../../assets/story/characters/char_5.png'),
   },
   {
-    id: 'char_pop_006',
+    id: 'char_006',
     name: '司马懿',
     tags: '权谋 · 反派 · 心狠手辣',
     popularity: 6,
     avatarSource: require('../../assets/story/characters/char_6.png'),
   },
   {
-    id: 'char_pop_007',
+    id: 'char_007',
     name: '诸葛亮',
     tags: '军师 · 高智商 · 温柔',
     popularity: 7,
     avatarSource: require('../../assets/story/characters/char_7.png'),
   },
   {
-    id: 'char_pop_008',
+    id: 'char_008',
     name: '马嘉祺',
     tags: 'TNT · 年上 · 苏感',
     popularity: 8,
     avatarSource: require('../../assets/story/characters/char_8.png'),
   },
   {
-    id: 'char_pop_009',
+    id: 'char_009',
     name: '严浩翔',
     tags: 'TNT · 霸总 · 渣苏',
     popularity: 9,
@@ -189,7 +189,6 @@ function getCharacterRankColor(rank: number): string {
 }
 
 export default function SearchScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const [tabIndex, setTabIndex] = useState(0);
@@ -209,14 +208,14 @@ export default function SearchScreen() {
   }
 
   function goToCharacterDetail(characterId: string) {
-    Alert.alert('', t('search.gotoCharacter', { id: characterId }));
+    AppNavigator.toCharacterDetail(characterId);
   }
 
   return (
     <View style={styles.container}>
       <View style={{ height: insets.top }} />
       <View style={styles.header}>
-        <Pressable style={styles.headerBack} onPress={() => router.back()} hitSlop={12}>
+        <Pressable style={styles.headerBack} onPress={() => AppNavigator.back()} hitSlop={12}>
           <Ionicons name="chevron-back" size={20} color="#111827" />
         </Pressable>
         <Text style={styles.headerTitle}>{t('search.title')}</Text>

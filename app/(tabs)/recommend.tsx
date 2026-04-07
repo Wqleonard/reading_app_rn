@@ -19,6 +19,14 @@ function isPlayerCompleted(player: ReturnType<typeof useVideoPlayer>): boolean {
   return player.currentTime >= duration - END_EPSILON_SECONDS;
 }
 
+function isPlayerPlayingSafely(player: ReturnType<typeof useVideoPlayer>): boolean {
+  try {
+    return player.playing;
+  } catch {
+    return false;
+  }
+}
+
 function GlassButton({
   label,
   onPress,
@@ -128,13 +136,21 @@ export default function RecommendScreen() {
       if (pausedByTabSwitchRef.current) {
         pausedByTabSwitchRef.current = false;
         if (!isPlayerCompleted(player)) {
-          player.play();
+          try {
+            player.play();
+          } catch {
+            // Player may be invalid during native teardown.
+          }
         }
       }
       return () => {
-        if (player.playing) {
+        if (isPlayerPlayingSafely(player)) {
           pausedByTabSwitchRef.current = true;
-          player.pause();
+          try {
+            player.pause();
+          } catch {
+            // Player may already be disposed when screen blurs.
+          }
         }
       };
     }, [player])

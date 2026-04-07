@@ -1,9 +1,9 @@
-import { Link } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { getStoryById } from '@/src/data/story/storyService';
 import { useEncounterStore } from '@/src/features/encounter/useEncounterStore';
+import { AppNavigator } from '@/src/navigation/appNavigator';
 
 export default function EncounterScreen() {
   const { t } = useTranslation();
@@ -39,9 +39,11 @@ export default function EncounterScreen() {
         <View style={styles.resultBox}>
           <Text style={styles.resultTitle}>{t('encounter.singleResult')}</Text>
           <Text style={styles.resultName}>{characterNameMap.get(singleResultId) ?? singleResultId}</Text>
-          <Link href={`/character/${singleResultId}`} style={styles.link}>
+          <Pressable onPress={() => AppNavigator.toCharacterDetail(singleResultId)}>
+            <Text style={styles.link}>
             {t('encounter.goCharacter')}
-          </Link>
+            </Text>
+          </Pressable>
         </View>
       ) : null}
 

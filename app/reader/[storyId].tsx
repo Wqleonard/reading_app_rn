@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Alert,
@@ -28,8 +28,9 @@ import {
   buildBranchColumns,
   buildBranchEdges,
 } from '@/src/features/reader/branch/storyBranchBuilder';
-import { resolveStoryImageSource } from '@/app/storyImageResolver';
+import { resolveStoryImageSource } from '@/src/utils/storyImageResolver';
 import { readingProgressRepository } from '@/src/storage/db/repositories/readingProgressRepository';
+import { AppNavigator } from '@/src/navigation/appNavigator';
 import { kv } from '@/src/storage/kv/kv';
 
 type ChoiceRecord = {
@@ -474,7 +475,6 @@ export default function ReaderScreen() {
     storyId: string;
     mode?: 'interactive' | 'pure';
   }>();
-  const router = useRouter();
   const routePureMode = mode === 'pure';
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -1097,7 +1097,7 @@ export default function ReaderScreen() {
 
             {__DEV__ && showDebug ? (
               <View style={styles.debugBox}>
-                <Text style={styles.debugTitle}>DEBUG (Flutter alignment)</Text>
+                <Text style={styles.debugTitle}>{t('reader.debugTitle')}</Text>
                 <Text style={styles.debugText}>
                   db.current_node_id: {rawProgressDebug.currentNodeId ?? 'null'}
                 </Text>
@@ -1130,7 +1130,7 @@ export default function ReaderScreen() {
             !showToolbar && styles.toolbarHidden,
           ]}
         >
-            <Pressable onPress={() => router.back()} hitSlop={10}>
+            <Pressable onPress={() => AppNavigator.back()} hitSlop={10}>
               <Ionicons name="chevron-back" size={24} color={readerTextColor} />
             </Pressable>
             <Text style={[styles.topToolbarTitle, { color: readerTextColor }]} numberOfLines={1}>
@@ -1346,7 +1346,9 @@ export default function ReaderScreen() {
                       />
                     ) : (
                       <View style={styles.backgroundImagePreviewFallback}>
-                        <Text style={styles.backgroundImagePreviewFallbackText}>N/A</Text>
+                        <Text style={styles.backgroundImagePreviewFallbackText}>
+                          {t('reader.fallbackNA')}
+                        </Text>
                       </View>
                     )}
                   </Pressable>
@@ -1472,7 +1474,7 @@ export default function ReaderScreen() {
                         Alert.alert('', t('reader.characterLockedToast'));
                         return;
                       }
-                      router.push(`/character/${character.id}`);
+                      AppNavigator.toCharacterDetail(character.id);
                     }}
                   >
                     <View

@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   Alert,
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppNavigator } from '@/src/navigation/appNavigator';
 
 type MeTab = 0 | 1 | 2;
 
@@ -123,19 +123,18 @@ const moreEncounterCharacters: EncounterCharacterItem[] = [
 export default function MeScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const [tabIndex, setTabIndex] = useState<MeTab>(0);
 
   function openCharacter(item: MyCharacterItem) {
     if (item.isInteracted) {
-      router.push(`/character/${item.id}`);
+      AppNavigator.toCharacterDetail(item.id);
       return;
     }
     Alert.alert('', t('me.characterLocked'));
   }
 
   function gotoEncounter() {
-    router.push('/(tabs)/encounter');
+    AppNavigator.toEncounterTab();
   }
 
   return (

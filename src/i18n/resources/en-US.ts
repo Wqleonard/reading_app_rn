@@ -4,6 +4,18 @@ const enUS = {
     loading: 'Loading...',
     retry: 'Retry',
   },
+  notFound: {
+    title: 'Page not found',
+    description: "This screen doesn't exist.",
+    backHome: 'Go to home screen',
+  },
+  chat: {
+    title: 'Character Chat',
+    characterId: 'Character ID',
+  },
+  modal: {
+    title: 'Modal',
+  },
   tabs: {
     recommend: 'Recommend',
     square: 'Square',
@@ -50,6 +62,18 @@ const enUS = {
     commentTitle: 'Post Comment',
     cancel: 'Cancel',
     sendComment: 'Send',
+  },
+  characterDetail: {
+    title: 'Character Detail',
+    notFound: 'Character not found',
+    role: 'Role',
+    follow: '+Follow',
+    followed: 'Followed',
+    encountered: '{{count}} people have encountered him',
+    worksTitle: 'Related Stories',
+    bottomReached: 'Reached the end~',
+    chatWithHim: 'Chat with him',
+    chatPending: 'Chat page is being migrated',
   },
   reader: {
     title: 'Reader',
@@ -112,6 +136,8 @@ const enUS = {
     characterLocked: 'Locked',
     showDebug: 'Show debug',
     hideDebug: 'Hide debug',
+    debugTitle: 'Debug info (Flutter alignment)',
+    fallbackNA: 'N/A',
   },
   character: {
     title: 'Character Detail',

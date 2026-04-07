@@ -4,6 +4,18 @@ const zhCN = {
     loading: '加载中...',
     retry: '重试',
   },
+  notFound: {
+    title: '页面不存在',
+    description: '当前页面不存在。',
+    backHome: '返回首页',
+  },
+  chat: {
+    title: '角色聊天',
+    characterId: '角色 ID',
+  },
+  modal: {
+    title: '弹窗',
+  },
   tabs: {
     recommend: '推荐',
     square: '广场',
@@ -50,6 +62,18 @@ const zhCN = {
     commentTitle: '发表评论',
     cancel: '取消',
     sendComment: '发送',
+  },
+  characterDetail: {
+    title: '角色详情',
+    notFound: '角色不存在',
+    role: '角色',
+    follow: '+关注',
+    followed: '已关注',
+    encountered: '已有{{count}}人与他邂逅',
+    worksTitle: '所在故事',
+    bottomReached: '到底啦~',
+    chatWithHim: '与他畅聊',
+    chatPending: '聊天页面正在迁移中',
   },
   reader: {
     title: '阅读器',
@@ -112,6 +136,8 @@ const zhCN = {
     characterLocked: '未解锁',
     showDebug: '显示调试',
     hideDebug: '隐藏调试',
+    debugTitle: '调试信息（Flutter 对齐）',
+    fallbackNA: '无',
   },
   character: {
     title: '角色详情',
