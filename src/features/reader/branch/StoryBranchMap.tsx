@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Image, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -13,6 +14,7 @@ const ROW_GAP = 18;
 const PAD_H = 20;
 const PAD_V = 20;
 const MAP_H = NODE_H * 3 + ROW_GAP * 2 + PAD_V * 2;
+const TAP_MOVE_THRESHOLD = 8;
 
 type Point = { x: number; y: number };
 
@@ -107,6 +109,17 @@ export function getApproxBranchColumnWidth(): number {
 
 export default function StoryBranchMap(props: StoryBranchMapProps) {
   const { columns, edges, onNodeTap, resolveImageSource } = props;
+  const touchStateRef = useRef<{
+    nodeId: string | null;
+    startX: number;
+    startY: number;
+    moved: boolean;
+  }>({
+    nodeId: null,
+    startX: 0,
+    startY: 0,
+    moved: false,
+  });
   const centers = buildCenters(columns);
   const totalWidth = calcTotalWidth(columns);
   const nodeWidthMap: Record<string, number> = {};
@@ -196,7 +209,45 @@ export default function StoryBranchMap(props: StoryBranchMapProps) {
                     </View>
                   )}
                 </View>
-                <View style={styles.nodePressMask} onTouchEnd={() => onNodeTap?.(node)} />
+                <View
+                  style={styles.nodePressMask}
+                  onTouchStart={(event) => {
+                    touchStateRef.current = {
+                      nodeId: node.id,
+                      startX: event.nativeEvent.pageX,
+                      startY: event.nativeEvent.pageY,
+                      moved: false,
+                    };
+                  }}
+                  onTouchMove={(event) => {
+                    const state = touchStateRef.current;
+                    if (state.nodeId !== node.id || state.moved) return;
+                    const dx = Math.abs(event.nativeEvent.pageX - state.startX);
+                    const dy = Math.abs(event.nativeEvent.pageY - state.startY);
+                    if (dx > TAP_MOVE_THRESHOLD || dy > TAP_MOVE_THRESHOLD) {
+                      state.moved = true;
+                    }
+                  }}
+                  onTouchCancel={() => {
+                    if (touchStateRef.current.nodeId === node.id) {
+                      touchStateRef.current.moved = true;
+                    }
+                  }}
+                  onTouchEnd={() => {
+                    const state = touchStateRef.current;
+                    if (state.nodeId === node.id && !state.moved) {
+                      onNodeTap?.(node);
+                    }
+                    if (state.nodeId === node.id) {
+                      touchStateRef.current = {
+                        nodeId: null,
+                        startX: 0,
+                        startY: 0,
+                        moved: false,
+                      };
+                    }
+                  }}
+                />
               </View>
             );
           })

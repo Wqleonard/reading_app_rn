@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image as ExpoImage } from 'expo-image';
 import {
   Alert,
   Animated,
@@ -18,7 +19,6 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
 import { getStoryById } from '@/src/data/story/storyService';
 import type { StoryChoice, StoryNode, StoryWithNodes } from '@/src/data/story/types';
@@ -80,19 +80,6 @@ const DEFAULT_READER_SETTINGS: ReaderSettings = {
   mainlineOnly: false,
 };
 
-function SelectionOptionIcon() {
-  return (
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M9 6L15 12L9 18"
-        stroke="#9CA3AF"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -622,16 +609,11 @@ export default function ReaderScreen() {
     );
   }, [story]);
   const shouldShowCustomChoiceInput =
-    !effectiveMainlineOnly &&
-    Boolean(
-      isUserCreatedStory ||
-        // TODO(reader-custom-input): remove this temporary story_001 fallback
-        // after UGC/custom story ingestion is wired in RN.
-        story?.id === 'story_001'
-    );
+    !effectiveMainlineOnly && isUserCreatedStory;
   const isPanelOpen = showToolbar && activePanel !== null;
   const topBarHeight = insets.top + 48;
   const bottomBarHeight = insets.bottom + 72;
+  const choiceBottomClearance = showToolbar ? bottomBarHeight + 16 : 24;
 
   const persistReadingProgress = useCallback(() => {
     if (!hydrated || !story || !progressState) return;
@@ -1046,15 +1028,12 @@ export default function ReaderScreen() {
     <View style={[styles.container, { backgroundColor: settings.backgroundColor }]}>
       {hasBackgroundImage && backgroundImageSource ? (
         <View pointerEvents="none" style={styles.backgroundImageLayer}>
-          <Image
+          <ExpoImage
             source={backgroundImageSource}
-            resizeMode="cover"
-            style={styles.backgroundImageFill}
-          />
-          <Image
-            source={backgroundImageSource}
-            resizeMode="contain"
-            style={styles.backgroundImageContain}
+            contentFit="cover"
+            contentPosition="center"
+            transition={0}
+            style={styles.backgroundImage}
           />
           <View style={styles.backgroundImageMask} />
         </View>
@@ -1093,7 +1072,7 @@ export default function ReaderScreen() {
                   {renderNodeContent(node)}
 
                   {node.type === 'choice' && node.choices && node.choices.length > 0 ? (
-                    <View style={styles.choiceBox}>
+                    <View style={[styles.choiceBox, { marginBottom: choiceBottomClearance }]}>
                       {!effectiveMainlineOnly ? (
                         <>
                           <Text style={styles.choiceTitle}>{t('reader.choosePrompt')}</Text>
@@ -1104,10 +1083,27 @@ export default function ReaderScreen() {
                               style={styles.choiceButton}
                               onPress={() => handleChoice(choice)}
                             >
-                              <View style={styles.choiceIcon}>
-                                <SelectionOptionIcon />
+                              <Ionicons
+                                name="star-outline"
+                                size={18}
+                                color={withAlpha(readerTextColor, 0.6)}
+                                style={styles.choiceIcon}
+                              />
+                              <View style={styles.choiceTextWrap}>
+                                <Text style={[styles.choiceText, { color: readerTextColor }]}>
+                                  {choice.text}
+                                </Text>
+                                {choice.description ? (
+                                  <Text
+                                    style={[
+                                      styles.choiceSubText,
+                                      { color: withAlpha(readerTextColor, 0.6) },
+                                    ]}
+                                  >
+                                    {choice.description}
+                                  </Text>
+                                ) : null}
                               </View>
-                              <Text style={styles.choiceText}>{choice.text}</Text>
                             </Pressable>
                           ))}
                           {shouldShowCustomChoiceInput ? (
@@ -1709,13 +1705,11 @@ const styles = StyleSheet.create({
   },
   backgroundImageLayer: {
     ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
   },
-  backgroundImageFill: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.22,
-  },
-  backgroundImageContain: {
-    ...StyleSheet.absoluteFillObject,
+  backgroundImage: {
+    width: '100%',
+    height: '100%',
     opacity: 0.48,
   },
   backgroundImageMask: {
@@ -1834,12 +1828,20 @@ const styles = StyleSheet.create({
   },
   choiceIcon: {
     marginRight: 12,
+    marginTop: 2,
+  },
+  choiceTextWrap: {
+    flex: 1,
   },
   choiceText: {
-    color: '#374151',
     fontSize: 16,
     lineHeight: 21,
     fontWeight: '500',
+  },
+  choiceSubText: {
+    marginTop: 4,
+    fontSize: 14,
+    lineHeight: 20,
   },
   customChoiceInputWrap: {
     marginTop: 0,
