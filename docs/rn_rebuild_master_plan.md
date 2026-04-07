@@ -133,11 +133,14 @@ reading-app-rn/
 - Flutter 参考：
   - `pages/square/square_controller.dart`
   - `pages/square/square_view.dart`
+  - `pages/search/search_controller.dart`
+  - `pages/search/search_view.dart`
 - RN Feature：`src/features/square`
 - 关键迁移点：
   - 分类筛选
   - 焦点轮播
   - 继续阅读卡片（来自 `reading_progress`）
+  - 搜索入口与搜索页：顶部安全区、双 Tab 榜单（热门故事/热门角色）、占位搜索交互已对齐 Flutter
   - 瀑布流实现说明：
     - Flutter：`flutter_staggered_grid_view`（`MasonryGridView`）
     - RN（当前）：自定义双列瀑布流（左右列分发 + 动态 `aspectRatio`），位于 `app/(tabs)/square.tsx`
@@ -340,7 +343,7 @@ reading-app-rn/
 | T-006 | 阅读器核心功能 | doing | 已完成连续渲染/选择跳转/进度恢复与回写/设置面板（滑轨/主题联动）持久化、亮度蒙层、高光图点击弹层+收录设背景（含本地资源迁移）、分支图面板自绘与回滚规则对齐、角色弹层（底部一体化容器+横向角色卡+解锁态+点击规则）对齐；角色卡图片缩放对齐与开场动画遮罩层迁移已记录为低优先级暂缓项 |
 | T-007 | 聊天与 AI | doing | Phase 6 已启动：先落聊天 UI 与消息状态机，再接历史持久化与 AI API |
 | T-008 | 性能与回归 | todo | Phase 7 |
-| T-009 | Tabs 视觉与交互对齐专项 | doing | 推荐 Tab 已按 Flutter 对齐（视频状态机/黑色底栏联动/自动播放修复）；广场 Tab 正在按 Flutter 结构与样式 1:1 迁移 |
+| T-009 | Tabs 视觉与交互对齐专项 | doing | 推荐 Tab 已按 Flutter 对齐（视频状态机/黑色底栏联动/自动播放修复）；广场 Tab 已补齐安全区与统一跳转策略，搜索页（热门故事/热门角色）已完成首版 1:1 对齐迁移 |
 
 ---
 

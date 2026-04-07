@@ -165,6 +165,17 @@ const zhCN = {
     emptyStories: '暂无故事',
     loadFailed: '加载失败',
   },
+  search: {
+    title: '搜索',
+    placeholder: '当你作为祸国妖妃',
+    searchButton: '搜索',
+    hotStories: '热门故事',
+    hotCharacters: '热门角色',
+    empty: '暂无数据',
+    notOpen: '搜索功能暂未开放',
+    gotoStory: '跳转到故事详情: {{id}}',
+    gotoCharacter: '跳转到角色详情: {{id}}',
+  },
   encounter: {
     title: '邂逅',
     subtitle: '抽取你的角色缘分',

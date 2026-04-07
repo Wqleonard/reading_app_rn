@@ -586,8 +586,8 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   headerBar: {
-    // height: 64,
-    paddingBottom: 10,
+    height: 56,
+    // paddingBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,

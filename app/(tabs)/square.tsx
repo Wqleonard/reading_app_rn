@@ -20,6 +20,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { listStories } from '@/src/data/story/storyService';
 import { readingProgressRepository } from '@/src/storage/db/repositories/readingProgressRepository';
@@ -31,6 +32,7 @@ const SQUARE_COVER_2 = require('../../assets/story/square/story_cover_2.png');
 const SQUARE_COVER_3 = require('../../assets/story/square/story_cover_3.png');
 const SQUARE_COVER_4 = require('../../assets/story/square/story_cover_4.png');
 const STORY_MAIN_COVER = require('../../assets/story/cover.jpg');
+const FEED_DEFAULT_STORY_ID = 'story_001';
 
 type SquareCategory = {
   id: string;
@@ -187,6 +189,7 @@ type ContinueReadingData = {
 export default function SquareScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const carouselRef = useRef<ScrollView | null>(null);
   const carouselIndexRef = useRef(0);
@@ -224,7 +227,7 @@ export default function SquareScreen() {
         >
           <Pressable
             style={styles.bannerCard}
-            onPress={() => router.push(`/story/${card.storyId}`)}
+            onPress={() => openStoryDetail(card.storyId)}
           >
             <Image source={card.imageSource} style={styles.bannerCardImage} resizeMode="cover" />
             <View style={styles.bannerMask} />
@@ -312,7 +315,12 @@ export default function SquareScreen() {
   }
 
   function openStoryDetail(storyId: string) {
-    router.push(`/story/${storyId}`);
+    // TODO(story-feed): when multi-story + UGC feed is enabled,
+    // route by the clicked card's actual `storyId`.
+    // Currently only one complete story detail exists in RN, so all entries
+    // point to the same detail page for consistent QA.
+    void storyId;
+    router.push(`/story/${FEED_DEFAULT_STORY_ID}`);
   }
 
   function renderStoryCard(story: SquareStory): ReactNode {
@@ -397,8 +405,8 @@ export default function SquareScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable style={styles.searchButton} onPress={() => {}}>
+      <View style={[styles.header, { marginTop: insets.top }]}>
+        <Pressable style={styles.searchButton} onPress={() => router.push('/search')}>
           <Ionicons name="search" size={20} color="#6b7280" />
         </Pressable>
         <Text style={styles.headerTitle}>{t('square.playgroundTitle')}</Text>
@@ -435,11 +443,10 @@ export default function SquareScreen() {
               <View style={styles.continueTextWrap}>
                 <Text style={styles.continueHint}>{t('square.continueExplore')}</Text>
                 <Text style={styles.continueTitle} numberOfLines={2}>
-                  {`《${continueReading.storyTitle}》${
-                    continueReading.branchChoice
+                  {`《${continueReading.storyTitle}》${continueReading.branchChoice
                       ? ` · ${t('square.choicePicked', { choice: continueReading.branchChoice })}`
                       : ''
-                  }`}
+                    }`}
                 </Text>
               </View>
               <Pressable style={styles.continueButton} onPress={() => openReader(continueReading.storyId)}>

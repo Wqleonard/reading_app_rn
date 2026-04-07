@@ -165,6 +165,17 @@ const enUS = {
     emptyStories: 'No stories available',
     loadFailed: 'Load failed',
   },
+  search: {
+    title: 'Search',
+    placeholder: 'When you become a femme fatale',
+    searchButton: 'Search',
+    hotStories: 'Hot Stories',
+    hotCharacters: 'Hot Characters',
+    empty: 'No data',
+    notOpen: 'Search feature is not available yet',
+    gotoStory: 'Go to story detail: {{id}}',
+    gotoCharacter: 'Go to character detail: {{id}}',
+  },
   encounter: {
     title: 'Encounter',
     subtitle: 'Draw your character destiny',
