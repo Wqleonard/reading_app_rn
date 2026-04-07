@@ -319,6 +319,15 @@ reading-app-rn/
   1. 聊天 UI 与消息状态（sending/sent/error）
   2. 聊天历史持久化
   3. AI API 接入（可先 Mock，再接真实）
+- 当前进展（已完成）：
+  - `app/chat/[id].tsx` 已从占位页迁移到可用首版，接入 `react-native-gifted-chat` 并完成基础样式对齐
+  - 已支持系统介绍卡片、自定义消息气泡、发送状态（sending/sent/error）与聊天记录持久化
+  - 已接入阿里百炼 DashScope 流式回复（优先文本/Markdown）
+  - 角色详情页聊天入口已切换到统一导航 `AppNavigator.toCharacterChat`
+- 当前待优化（持续进行）：
+  - 聊天页视觉细节仍需继续对齐 Flutter（间距、头像/气泡细节、输入区交互）
+  - Markdown 渲染链路需稳定化（Expo 运行时兼容与依赖治理）
+  - 消息类型扩展（图片/文件/富内容）与后续自有 API 适配层
 - 验收：
   - 可稳定连续对话，重进可恢复历史
 
@@ -361,7 +370,7 @@ reading-app-rn/
 | T-004 | Tabs 四模块首版 | done | 推荐状态机 + 广场分类/继续阅读 + 邂逅三态 + 我的三标签 |
 | T-005 | 故事详情 + 角色详情 | done | 已完成故事评论区、角色作品列表、互动/纯享阅读入口参数化；并按 Flutter 结构补齐 Story 详情页（封面区/标签操作/角色区/分支图/评论区/底部双入口）；角色详情页已按 Flutter 对齐重构（真实+虚拟角色统一渲染、顶部栏/主视觉/作品区/底部操作），当前阶段暂告一段落 |
 | T-006 | 阅读器核心功能 | done | 已完成连续渲染/选择跳转/进度恢复与回写/设置面板（滑轨/主题联动）持久化、亮度蒙层、高光图点击弹层+收录设背景（含本地资源迁移）、分支图面板自绘与回滚规则对齐、角色弹层（底部一体化容器+横向角色卡+解锁态+点击规则）对齐；分支选择 custom-input 已限定为 UGC 展示；高光背景图展示完整性问题已修复 |
-| T-007 | 聊天与 AI | doing | 已启动聊天页重构：接入 `react-native-gifted-chat` + Markdown 渲染，自定义系统介绍卡片与消息气泡；角色详情页聊天按钮已切换为 `AppNavigator.toCharacterChat` 统一跳转；已接入阿里百炼 DashScope 流式回复（优先文本/Markdown），下一步补充多模态消息（图片/文件）与业务 API 适配层 |
+| T-007 | 聊天与 AI | doing | 聊天页已完成首版重构并打通跳转与流式回复：`react-native-gifted-chat`、消息状态与DB持久化、自定义系统卡片、DashScope 流式接入；当前继续优化 UI 还原度与 Markdown 稳定性，随后补齐图片/文件等多模态消息与自有 API 适配 |
 | T-008 | 性能与回归 | todo | Phase 7 |
 | T-009 | Tabs 视觉与交互对齐专项 | doing | 推荐 Tab 已按 Flutter 对齐（视频状态机/黑色底栏联动/自动播放修复）；广场 Tab 已补齐安全区与统一跳转策略，搜索页（热门故事/热门角色）已完成首版 1:1 对齐迁移；我的 Tab 已完成首版 1:1 迁移（顶部用户区/三标签/记录卡/角色卡/更多邂逅）；角色详情相关入口已切换为真实跳转 |
 
@@ -372,7 +381,7 @@ reading-app-rn/
 下次直接按以下方式继续：
 1. 先读本文件：`reading-app-rn/docs/rn_rebuild_master_plan.md`
 2. 当前优先顺序：
-   - 继续 `T-007`：完善聊天消息类型扩展（图片/文件/富内容）与流式状态机
+   - 继续 `T-007`：优先完成聊天页 UI 细节对齐与 Markdown 稳定性，再推进多模态消息扩展（图片/文件/富内容）与流式状态机
 3. 每完成一个子任务，更新：
    - 任务状态表
    - 风险与问题记录
@@ -383,8 +392,8 @@ reading-app-rn/
 ### 新会话可直接复制的话术
 
 > 请先阅读 `reading-app-rn/docs/rn_rebuild_master_plan.md`，继续当前重构：  
-> 1) 重构聊天页 `app/chat/[id].tsx`，对齐 Flutter `reading_app/lib/pages/character_chat` 的 UI、交互和安全区；  
-> 2) 补齐聊天状态机、历史持久化与 AI 接入链路；  
+> 1) 继续优化聊天页 `app/chat/[id].tsx`，对齐 Flutter `reading_app/lib/pages/character_chat` 的 UI、交互和安全区；  
+> 2) 稳定 Markdown 渲染链路并完善流式状态机；  
 > 3) 所有新增文案保持中英文双语，完成后更新 master plan 的任务状态与备注。
 
 ---
