@@ -30,11 +30,11 @@ type RankingCharacter = {
   avatarSource: number;
 };
 
-const STORY_COVER_1 = require('../assets/story/square/story_cover_1.png');
-const STORY_COVER_2 = require('../assets/story/square/story_cover_2.png');
-const STORY_COVER_3 = require('../assets/story/square/story_cover_3.png');
-const STORY_COVER_4 = require('../assets/story/square/story_cover_4.png');
-const STORY_BANNER_1 = require('../assets/story/square/banner_story_1.png');
+const STORY_COVER_1 = require('../../assets/story/square/story_cover_1.png');
+const STORY_COVER_2 = require('../../assets/story/square/story_cover_2.png');
+const STORY_COVER_3 = require('../../assets/story/square/story_cover_3.png');
+const STORY_COVER_4 = require('../../assets/story/square/story_cover_4.png');
+const STORY_BANNER_1 = require('../../assets/story/square/banner_story_1.png');
 
 const stories: SearchStory[] = [
   {
@@ -94,63 +94,63 @@ const characters: RankingCharacter[] = [
     name: '秦彻',
     tags: '爹系 · 引导型 · 霸总',
     popularity: 1,
-    avatarSource: require('../assets/story/characters/char_1.png'),
+    avatarSource: require('../../assets/story/characters/char_1.png'),
   },
   {
     id: 'char_pop_002',
     name: '黎深',
     tags: '智性恋 · 人夫 · 禁欲',
     popularity: 2,
-    avatarSource: require('../assets/story/characters/char_2.png'),
+    avatarSource: require('../../assets/story/characters/char_2.png'),
   },
   {
     id: 'char_pop_003',
     name: '夏以昼',
     tags: '年上 · 伪骨 · 妹控',
     popularity: 3,
-    avatarSource: require('../assets/story/characters/char_3.png'),
+    avatarSource: require('../../assets/story/characters/char_3.png'),
   },
   {
     id: 'char_pop_004',
     name: '德拉科·马尔福',
     tags: 'HP · 美强惨 · 口嫌体正直',
     popularity: 4,
-    avatarSource: require('../assets/story/characters/char_4.png'),
+    avatarSource: require('../../assets/story/characters/char_4.png'),
   },
   {
     id: 'char_pop_005',
     name: '汤姆·里德尔',
     tags: 'HP · 白切黑 · 阴湿男鬼',
     popularity: 5,
-    avatarSource: require('../assets/story/characters/char_5.png'),
+    avatarSource: require('../../assets/story/characters/char_5.png'),
   },
   {
     id: 'char_pop_006',
     name: '司马懿',
     tags: '权谋 · 反派 · 心狠手辣',
     popularity: 6,
-    avatarSource: require('../assets/story/characters/char_6.png'),
+    avatarSource: require('../../assets/story/characters/char_6.png'),
   },
   {
     id: 'char_pop_007',
     name: '诸葛亮',
     tags: '军师 · 高智商 · 温柔',
     popularity: 7,
-    avatarSource: require('../assets/story/characters/char_7.png'),
+    avatarSource: require('../../assets/story/characters/char_7.png'),
   },
   {
     id: 'char_pop_008',
     name: '马嘉祺',
     tags: 'TNT · 年上 · 苏感',
     popularity: 8,
-    avatarSource: require('../assets/story/characters/char_8.png'),
+    avatarSource: require('../../assets/story/characters/char_8.png'),
   },
   {
     id: 'char_pop_009',
     name: '严浩翔',
     tags: 'TNT · 霸总 · 渣苏',
     popularity: 9,
-    avatarSource: require('../assets/story/characters/char_9.png'),
+    avatarSource: require('../../assets/story/characters/char_9.png'),
   },
 ];
 
