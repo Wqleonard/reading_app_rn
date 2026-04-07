@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -162,7 +161,7 @@ export default function CharacterDetailScreen() {
         />
         <Pressable
           style={styles.chatButton}
-          onPress={() => Alert.alert('', t('characterDetail.chatPending'))}
+          onPress={() => AppNavigator.toCharacterChat(character.id)}
         >
           <Ionicons name="chatbubble-outline" size={20} color="#ffffff" />
           <Text style={styles.chatButtonText}>{t('characterDetail.chatWithHim')}</Text>

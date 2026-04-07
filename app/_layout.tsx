@@ -73,6 +73,7 @@ function RootLayoutNav() {
         <Stack.Screen name="story/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="reader/[storyId]" options={{ headerShown: false }} />
         <Stack.Screen name="character/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>

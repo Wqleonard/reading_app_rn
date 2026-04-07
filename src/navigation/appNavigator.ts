@@ -36,10 +36,21 @@ export class AppNavigator {
     router.push(`/character/${characterId}`);
   }
 
+  static toCharacterChat(characterId: string) {
+    if (!characterId) return;
+    router.push(`/chat/${characterId}`);
+  }
+
   static toCharacterDetailFromObject(character: CharacterLike) {
     const id = character?.id;
     if (!id) return;
     this.toCharacterDetail(id);
+  }
+
+  static toCharacterChatFromObject(character: CharacterLike) {
+    const id = character?.id;
+    if (!id) return;
+    this.toCharacterChat(id);
   }
 
   static back() {

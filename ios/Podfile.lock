@@ -28,7 +28,7 @@ PODS:
     - Yoga
   - ExpoAsset (55.0.10):
     - ExpoModulesCore
-  - ExpoBlur (55.0.12):
+  - ExpoBlur (55.0.13):
     - ExpoModulesCore
   - ExpoDomWebView (55.0.3):
     - ExpoModulesCore
@@ -1512,6 +1512,51 @@ PODS:
     - React-RCTFBReactNativeSpec
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
+  - react-native-keyboard-controller (1.20.7):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - react-native-keyboard-controller/common (= 1.20.7)
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - react-native-keyboard-controller/common (1.20.7):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - react-native-safe-area-context (5.6.2):
     - hermes-engine
     - RCTRequired
@@ -1987,6 +2032,28 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - RNGestureHandler (2.30.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - RNReanimated (4.2.1):
     - hermes-engine
     - RCTRequired
@@ -2299,6 +2366,7 @@ DEPENDENCIES:
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
+  - react-native-keyboard-controller (from `../node_modules/react-native-keyboard-controller`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-networking (from `../node_modules/react-native/ReactCommon/react/networking`)
@@ -2335,6 +2403,7 @@ DEPENDENCIES:
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - ReactNativeDependencies (from `../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
+  - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
@@ -2473,6 +2542,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   React-microtasksnativemodule:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
+  react-native-keyboard-controller:
+    :path: "../node_modules/react-native-keyboard-controller"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
   React-NativeModulesApple:
@@ -2545,6 +2616,8 @@ EXTERNAL SOURCES:
     :podspec: "../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec"
   RNCAsyncStorage:
     :path: "../node_modules/@react-native-async-storage/async-storage"
+  RNGestureHandler:
+    :path: "../node_modules/react-native-gesture-handler"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
@@ -2560,7 +2633,7 @@ SPEC CHECKSUMS:
   EXConstants: 71da2085c347f6907b5b6c96ded7244891fc0f08
   Expo: 2749929a52192142cfcc2aa17dafd918d8cf074a
   ExpoAsset: 4966b4823ff0a7a0657c7b53e83b237a2eb9f45b
-  ExpoBlur: 08f4671be6bfe65994be7379fede338b6176a552
+  ExpoBlur: 6333d303ab1b83beab83c9d4b849d60c46807f8c
   ExpoDomWebView: d4f2ed3c3fa31d0ce89e79501a0c041c2f233189
   ExpoFileSystem: a36716f500022a3ca30605d3f10b908d7728b414
   ExpoFont: 4d2a6dedce012c4793532cb38d561d3da95eaafd
@@ -2620,6 +2693,7 @@ SPEC CHECKSUMS:
   React-logger: 5cbf4e7f0c8ada943b2308d8ff2abd6626150afc
   React-Mapbuffer: 6ebe9aef26ee92a3b031af65d541f57c584f6195
   React-microtasksnativemodule: 31c3564d3e7a2a4d6ae1d47cbae030b993ac23a6
+  react-native-keyboard-controller: 171c71f104a40568afcde57f5426b67b5252e71d
   react-native-safe-area-context: 53f796cb6c814661bbe99fbdfd0585d07b996cdd
   React-NativeModulesApple: eb99914fab3dc5644b2c7ff7c04a782194128863
   React-networking: dc2d5224242fde7134a144019497043bd6225364
@@ -2656,6 +2730,7 @@ SPEC CHECKSUMS:
   ReactCommon: f63857ae341c1f73b58bea001071acf306df0225
   ReactNativeDependencies: 2a4ade8c0dc8d1a19e0d97641325036692e698a2
   RNCAsyncStorage: e85a99325df9eb0191a6ee2b2a842644c7eb29f4
+  RNGestureHandler: 399aee990348a3aa26bbf5907f40d192a0cc09bf
   RNReanimated: 0de2f2ee429ff5e566104e177a69f58e9216668a
   RNScreens: 62b74ab28af2fcde74afafd00d7500df4289bab4
   RNSVG: d21504723b6cad1a6f359106e51dadd4141386cf
