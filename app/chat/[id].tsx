@@ -4,7 +4,6 @@ import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Markdown from 'react-native-markdown-display';
 import {
-  Alert,
   type ImageSourcePropType,
   Pressable,
   StyleSheet,
@@ -25,6 +24,7 @@ import {
   type SendProps,
   type SystemMessageProps,
 } from 'react-native-gifted-chat';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -302,6 +302,11 @@ export default function CharacterChatScreen() {
           )
         );
       } catch (error) {
+        console.error('[chat][send] failed', {
+          characterId: id,
+          messageId: aiMessageId,
+          error: error instanceof Error ? error.message : String(error),
+        });
         const fallbackText = t('chat.aiReplyFailed');
         await chatRepository.insert({
           characterId: id,
@@ -325,79 +330,12 @@ export default function CharacterChatScreen() {
               : msg
           )
         );
-        Alert.alert('', error instanceof Error ? error.message : fallbackText);
       } finally {
         setIsGenerating(false);
       }
     },
     [character, characterAvatar, id, isGenerating, messages, t]
   );
-
-  const handleClearChat = useCallback(() => {
-    if (!id || !character) return;
-    Alert.alert(t('chat.clearTitle'), t('chat.clearConfirm'), [
-      { text: t('chat.cancel'), style: 'cancel' },
-      {
-        text: t('chat.confirm'),
-        style: 'destructive',
-        onPress: () => {
-          void (async () => {
-            await chatRepository.clearByCharacterId(id);
-            const now = Date.now();
-            const introId = `intro_${now}`;
-            const welcomeId = `welcome_${now + 1}`;
-            const tags = formatCharacterTags(character.tags);
-            const introText = `${tags || t('chat.defaultIntroTags')}\n${
-              character.quote || t('chat.defaultIntroDescription')
-            }`;
-            const welcomeText = t('chat.defaultWelcome', { name: character.name });
-
-            await chatRepository.insert({
-              characterId: id,
-              messageId: introId,
-              authorId: 'system',
-              text: introText,
-              createdAtMs: now,
-              status: 'sent',
-            });
-            await chatRepository.insert({
-              characterId: id,
-              messageId: welcomeId,
-              authorId: id,
-              text: welcomeText,
-              createdAtMs: now + 1,
-              status: 'sent',
-            });
-
-            setMessages([
-              {
-                _id: welcomeId,
-                text: welcomeText,
-                createdAt: new Date(now + 1),
-                user: {
-                  _id: id,
-                  name: character.name,
-                  avatar: characterAvatar,
-                },
-                sent: true,
-                received: true,
-                statusTag: 'sent',
-              },
-              {
-                _id: introId,
-                text: introText,
-                createdAt: new Date(now),
-                user: { _id: 'system', name: 'system' },
-                system: true,
-                introCard: true,
-                statusTag: 'sent',
-              },
-            ]);
-          })();
-        },
-      },
-    ]);
-  }, [character, characterAvatar, id, t]);
 
   if (!character) {
     return (
@@ -415,18 +353,23 @@ export default function CharacterChatScreen() {
       ) : (
         <View style={styles.bgFallback} />
       )}
-      <View style={styles.bgMask} />
 
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            height: insets.top + 56,
+            paddingTop: insets.top,
+          },
+        ]}
+      >
         <Pressable style={styles.headerAction} onPress={() => AppNavigator.back()}>
           <Ionicons name="chevron-back" size={22} color="#111827" />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {character.name}
         </Text>
-        <Pressable style={styles.headerAction} onPress={handleClearChat}>
-          <Ionicons name="trash-outline" size={20} color="#111827" />
-        </Pressable>
+        <View style={styles.headerRightSpacer} />
       </View>
       {isHydrating && messages.length === 0 ? (
         <View style={styles.loadingWrap}>
@@ -439,6 +382,7 @@ export default function CharacterChatScreen() {
         onSend={onSend}
         user={{ _id: USER_ID, name: t('chat.me') }}
         isSendButtonAlwaysVisible
+        isAvatarOnTop
         listProps={{ keyboardShouldPersistTaps: 'handled' }}
         renderBubble={(props: BubbleProps<IMessage>) => {
           const message = props.currentMessage as ChatUiMessage;
@@ -446,6 +390,7 @@ export default function CharacterChatScreen() {
           return (
             <Bubble
               {...props}
+              renderTicks={() => null}
               wrapperStyle={{
                 left: [
                   styles.bubbleLeft,
@@ -463,12 +408,18 @@ export default function CharacterChatScreen() {
         renderMessageText={(props) => {
           const text = String(props.currentMessage?.text ?? '').trim();
           if (!text) return null;
+          const isSentByMe =
+            String((props.currentMessage as IMessage)?.user?._id ?? '') === USER_ID;
           return (
             <View style={styles.markdownWrap}>
-              <Markdown style={markdownStyles}>{text}</Markdown>
+              <Markdown style={isSentByMe ? markdownStylesRight : markdownStylesLeft}>
+                {text}
+              </Markdown>
             </View>
           );
         }}
+        renderTime={() => null}
+        renderDay={() => null}
         renderSystemMessage={(props: SystemMessageProps<IMessage>) => {
           const message = props.currentMessage as ChatUiMessage;
           if (!message?.introCard) {
@@ -495,6 +446,7 @@ export default function CharacterChatScreen() {
         renderComposer={(props: ComposerProps) => (
           <Composer
             {...props}
+            composerHeight={37}
             textInputProps={{
               ...props.textInputProps,
               style: [styles.composerInput, props.textInputProps?.style],
@@ -504,13 +456,21 @@ export default function CharacterChatScreen() {
           />
         )}
         renderSend={(props: SendProps<IMessage>) => (
-          <Send {...props}>
+          <Send {...props} containerStyle={styles.sendContainer}>
             <View style={styles.sendWrap}>
-              <Ionicons
-                name={isGenerating ? 'time-outline' : 'send'}
-                size={20}
-                color={isGenerating ? '#9ca3af' : '#111827'}
-              />
+              {isGenerating ? (
+                <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+                  <Circle cx="10" cy="10" r="8" stroke="#D1D5DB" strokeWidth="2" />
+                  <Path
+                    d="M18 10A8 8 0 0 1 10 18"
+                    stroke="#111827"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </Svg>
+              ) : (
+                <Ionicons name="send" size={20} color="#111827" />
+              )}
             </View>
           </Send>
         )}
@@ -539,24 +499,24 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#f3f4f6',
   },
-  bgMask: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.58)',
-  },
   header: {
-    height: 96,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#ffffff',
     zIndex: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,24,39,0.06)',
   },
   headerAction: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.75)',
+  },
+  headerRightSpacer: {
+    width: 40,
+    height: 40,
   },
   headerTitle: {
     flex: 1,
@@ -572,7 +532,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 16,
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
-    paddingHorizontal: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   bubbleRight: {
     backgroundColor: '#1f2937',
@@ -580,7 +541,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 6,
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
-    paddingHorizontal: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   bubbleError: {
     backgroundColor: '#fef2f2',
@@ -598,7 +560,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   markdownWrap: {
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
   },
   introCard: {
     marginVertical: 8,
@@ -623,37 +585,48 @@ const styles = StyleSheet.create({
   inputToolbar: {
     borderTopWidth: 0,
     backgroundColor: '#ffffff',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    minHeight: 70,
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   inputToolbarPrimary: {
     alignItems: 'center',
   },
   composerInput: {
+    height: 37,
     borderRadius: 999,
     paddingHorizontal: 16,
+    paddingVertical: 8,
     marginLeft: 0,
     backgroundColor: '#f3f4f6',
     color: '#1f2937',
     fontSize: 14,
     lineHeight: 20,
+    textAlignVertical: 'center',
+  },
+  sendContainer: {
+    height: 37,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+    marginRight: 0,
   },
   sendWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 2,
-    backgroundColor: '#f3f4f6',
   },
   hintWrap: {
+    height: 32,
+    marginHorizontal: 28,
+    marginBottom: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 4,
   },
   hintText: {
-    color: '#6b7280',
+    color: '#9ca3af',
     fontSize: 10,
     lineHeight: 14,
   },
@@ -687,7 +660,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const markdownStyles = {
+const markdownStylesLeft = {
   body: {
     marginTop: 0,
     marginBottom: 0,
@@ -717,6 +690,42 @@ const markdownStyles = {
   },
   link: {
     color: '#2563eb',
+    textDecorationLine: 'underline' as const,
+  },
+};
+
+const markdownStylesRight = {
+  body: {
+    marginTop: 0,
+    marginBottom: 0,
+    color: '#ffffff',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  strong: {
+    fontWeight: '700' as const,
+    color: '#ffffff',
+  },
+  code_inline: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    color: '#ffffff',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+  },
+  code_block: {
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    color: '#ffffff',
+    borderRadius: 8,
+    padding: 10,
+  },
+  fence: {
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    color: '#ffffff',
+    borderRadius: 8,
+    padding: 10,
+  },
+  link: {
+    color: '#dbeafe',
     textDecorationLine: 'underline' as const,
   },
 };
