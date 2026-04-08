@@ -1,0 +1,582 @@
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:processResources UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:shared:compileKotlin UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:shared:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:compileJava NO-SOURCE
+> Task :gradle-plugin:shared:processResources NO-SOURCE
+> Task :gradle-plugin:shared:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:processResources NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:jar UP-TO-DATE
+> Task :gradle-plugin:shared:jar UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:settings-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:jar UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:compileKotlin UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:jar UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-module-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-module-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-module-gradle-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:compileKotlin UP-TO-DATE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:processResources UP-TO-DATE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:processResources UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:processResources UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:jar UP-TO-DATE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:jar UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:jar UP-TO-DATE
+> Task :expo-module-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :expo-module-gradle-plugin:compileJava NO-SOURCE
+> Task :expo-module-gradle-plugin:classes UP-TO-DATE
+> Task :expo-module-gradle-plugin:jar UP-TO-DATE
+
+> Configure project :app
+ ℹ️  [33mApplying gradle plugin[0m '[32mexpo-max-sdk-override-plugin[0m'
+  [expo-max-sdk-override-plugin] This plugin will find all permissions declared with `android:maxSdkVersion`. If there exists a declaration with the `android:maxSdkVersion` annotation and another one without, the plugin will remove the annotation from the final merged manifest. In order to see a log with the changes run a clean build of the app.
+
+> Configure project :
+[32m[ExpoRootProject][0m Using the following versions:
+  - buildTools:  [32m36.0.0[0m
+  - minSdk:      [32m24[0m
+  - compileSdk:  [32m36[0m
+  - targetSdk:   [32m36[0m
+  - ndk:         [32m27.1.12297006[0m
+  - kotlin:      [32m2.1.20[0m
+  - ksp:         [32m2.1.20-2.0.1[0m
+
+> Configure project :expo-modules-core
+Linking react-native-worklets native libs into expo-modules-core build tasks
+task ':react-native-worklets:mergeDebugNativeLibs'
+task ':react-native-worklets:mergeReleaseNativeLibs'
+
+> Configure project :expo
+
+Using expo modules
+  - [32mexpo-log-box[0m (55.0.8)
+  - [32mexpo-constants[0m (55.0.9)
+  - [32mexpo-modules-core[0m (55.0.18)
+  - [33m[📦][0m [32mexpo-dom-webview[0m (55.0.3)
+  - [33m[📦][0m [32mexpo-asset[0m (55.0.10)
+  - [33m[📦][0m [32mexpo-blur[0m (55.0.13)
+  - [33m[📦][0m [32mexpo-file-system[0m (55.0.12)
+  - [33m[📦][0m [32mexpo-font[0m (55.0.4)
+  - [33m[📦][0m [32mexpo-image[0m (55.0.6)
+  - [33m[📦][0m [32mexpo-keep-awake[0m (55.0.4)
+  - [33m[📦][0m [32mexpo-linear-gradient[0m (55.0.11)
+  - [33m[📦][0m [32mexpo-linking[0m (55.0.9)
+  - [33m[📦][0m [32mexpo-localization[0m (55.0.9)
+  - [33m[📦][0m [32mexpo-router[0m (55.0.8)
+  - [33m[📦][0m [32mexpo-splash-screen[0m (55.0.13)
+  - [33m[📦][0m [32mexpo-sqlite[0m (55.0.11)
+  - [33m[📦][0m [32mexpo-video[0m (55.0.13)
+  - [33m[📦][0m [32mexpo-web-browser[0m (55.0.10)
+
+
+> Task :app:tasks
+
+------------------------------------------------------------
+Tasks runnable from project ':app'
+------------------------------------------------------------
+
+Android tasks
+-------------
+androidDependencies - Displays the Android dependencies of the project.
+signingReport - Displays the signing info for the base and test modules
+sourceSets - Prints out all the source sets defined in this project.
+
+Build tasks
+-----------
+assemble - Assemble main outputs for all the variants.
+assembleAndroidTest - Assembles all the Test applications.
+assembleUnitTest - Assembles all the unit test applications.
+build - Assembles and tests this project.
+buildDependents - Assembles and tests this project and all projects that depend on it.
+buildKotlinToolingMetadata - Build metadata json file containing information about the used Kotlin tooling
+buildNeeded - Assembles and tests this project and all projects it depends on.
+bundle - Assemble bundles for all the variants.
+clean - Deletes the build directory.
+compileDebugAndroidTestSources
+compileDebugOptimizedSources
+compileDebugOptimizedUnitTestSources
+compileDebugSources
+compileDebugUnitTestSources
+compileReleaseSources
+compileReleaseUnitTestSources
+
+Help tasks
+----------
+artifactTransforms - Displays the Artifact Transforms that can be executed in project ':app'.
+buildEnvironment - Displays all buildscript dependencies declared in project ':app'.
+dependencies - Displays all dependencies declared in project ':app'.
+dependencyInsight - Displays the insight into a specific dependency in project ':app'.
+help - Displays a help message.
+javaToolchains - Displays the detected java toolchains.
+outgoingVariants - Displays the outgoing variants of project ':app'.
+projects - Displays the sub-projects of project ':app'.
+properties - Displays the properties of project ':app'.
+resolvableConfigurations - Displays the configurations that can be resolved in project ':app'.
+tasks - Displays the tasks runnable from project ':app'.
+
+Install tasks
+-------------
+installDebug - Installs the Debug build.
+installDebugAndroidTest - Installs the android (on device) tests for the Debug build.
+installDebugOptimized - Installs the DebugOptimized build.
+installRelease - Installs the Release build.
+uninstallAll - Uninstall all applications.
+uninstallDebug - Uninstalls the Debug build.
+uninstallDebugAndroidTest - Uninstalls the android (on device) tests for the Debug build.
+uninstallDebugOptimized - Uninstalls the DebugOptimized build.
+uninstallRelease - Uninstalls the Release build.
+
+React tasks
+-----------
+createBundleReleaseJsAndAssets
+generateAutolinkingNewArchitectureFiles
+generateAutolinkingPackageList
+generateReactNativeEntryPoint
+
+Verification tasks
+------------------
+check - Runs all checks.
+checkJetifier - Checks whether Jetifier is needed for the current project
+checkKotlinGradlePluginConfigurationErrors - Checks that Kotlin Gradle Plugin hasn't reported project configuration errors, failing otherwise. This task always runs before compileKotlin* or similar tasks.
+connectedAndroidTest - Installs and runs instrumentation tests for all flavors on connected devices.
+connectedCheck - Runs all device checks on currently connected devices.
+connectedDebugAndroidTest - Installs and runs the tests for debug on connected devices.
+deviceAndroidTest - Installs and runs instrumentation tests using all Device Providers.
+deviceCheck - Runs all device checks using Device Providers and Test Servers.
+lint - Runs lint on the default variant.
+lintDebug - Print text output from the corresponding lint report task
+lintDebugOptimized - Print text output from the corresponding lint report task
+lintFix - Runs lint on the default variant and applies any safe suggestions to the source code.
+lintRelease - Print text output from the corresponding lint report task
+lintVitalRelease - Print text output from the corresponding lint report task
+test - Run unit tests for all variants.
+testDebugOptimizedUnitTest - Run unit tests for the debugOptimized build.
+testDebugUnitTest - Run unit tests for the debug build.
+testReleaseUnitTest - Run unit tests for the release build.
+updateLintBaseline - Updates the lint baseline using the default variant.
+
+Other tasks
+-----------
+analyzeDebugAndroidTestDependencies
+analyzeDebugDependencies
+analyzeDebugOptimizedDependencies
+analyzeDebugOptimizedUnitTestDependencies
+analyzeDebugUnitTestDependencies
+analyzeReleaseDependencies
+analyzeReleaseUnitTestDependencies
+asarToCompatSplitsForDebug
+asarToCompatSplitsForDebugOptimized
+asarToCompatSplitsForRelease
+assembleDebug - Assembles main output for variant debug
+assembleDebugAndroidTest - Assembles main output for variant debugAndroidTest
+assembleDebugOptimized - Assembles main output for variant debugOptimized
+assembleDebugOptimizedUnitTest - Assembles main output for variant debugOptimizedUnitTest
+assembleDebugUnitTest - Assembles main output for variant debugUnitTest
+assembleRelease - Assembles main output for variant release
+assembleReleaseUnitTest - Assembles main output for variant releaseUnitTest
+buildCMakeDebug
+buildCMakeDebug[arm64-v8a]
+buildCMakeDebug[armeabi-v7a]
+buildCMakeDebug[x86]
+buildCMakeDebug[x86_64]
+buildCMakeRelease
+buildCMakeRelease[arm64-v8a]
+buildCMakeRelease[armeabi-v7a]
+buildCMakeRelease[x86]
+buildCMakeRelease[x86_64]
+buildCMakeRelWithDebInfo
+buildCMakeRelWithDebInfo[arm64-v8a]
+buildCMakeRelWithDebInfo[armeabi-v7a]
+buildCMakeRelWithDebInfo[x86]
+buildCMakeRelWithDebInfo[x86_64]
+buildDebugOptimizedPreBundle
+buildDebugPreBundle
+buildReleasePreBundle
+bundleDebug - Assembles bundle for variant debug
+bundleDebugClassesToCompileJar
+bundleDebugClassesToRuntimeJar
+bundleDebugOptimized - Assembles bundle for variant debugOptimized
+bundleDebugOptimizedClassesToCompileJar
+bundleDebugOptimizedClassesToRuntimeJar
+bundleDebugOptimizedResources
+bundleDebugResources
+bundleRelease - Assembles bundle for variant release
+bundleReleaseClassesToCompileJar
+bundleReleaseClassesToRuntimeJar
+bundleReleaseResources
+checkDebugAarMetadata
+checkDebugAndroidTestAarMetadata
+checkDebugAndroidTestDuplicateClasses
+checkDebugDuplicateClasses
+checkDebugManifest
+checkDebugOptimizedAarMetadata
+checkDebugOptimizedDuplicateClasses
+checkDebugOptimizedManifest
+checkReleaseAarMetadata
+checkReleaseDuplicateClasses
+checkReleaseManifest
+collectReleaseDependencies
+compileDebugAndroidTestJavaWithJavac
+compileDebugAndroidTestKotlin - Compiles the debugAndroidTest kotlin.
+compileDebugAndroidTestShaders
+compileDebugArtProfile
+compileDebugJavaWithJavac
+compileDebugKotlin - Compiles the debug kotlin.
+compileDebugOptimizedArtProfile
+compileDebugOptimizedJavaWithJavac
+compileDebugOptimizedKotlin - Compiles the debugOptimized kotlin.
+compileDebugOptimizedShaders
+compileDebugOptimizedUnitTestJavaWithJavac
+compileDebugOptimizedUnitTestKotlin - Compiles the debugOptimizedUnitTest kotlin.
+compileDebugShaders
+compileDebugUnitTestJavaWithJavac
+compileDebugUnitTestKotlin - Compiles the debugUnitTest kotlin.
+compileLint
+compileLintChecks
+compileReleaseArtProfile
+compileReleaseJavaWithJavac
+compileReleaseKotlin - Compiles the release kotlin.
+compileReleaseShaders
+compileReleaseUnitTestJavaWithJavac
+compileReleaseUnitTestKotlin - Compiles the releaseUnitTest kotlin.
+compressDebugAndroidTestAssets
+compressDebugAssets
+compressDebugOptimizedAssets
+compressReleaseAssets
+configureCMakeDebug
+configureCMakeDebug[arm64-v8a]
+configureCMakeDebug[armeabi-v7a]
+configureCMakeDebug[x86]
+configureCMakeDebug[x86_64]
+configureCMakeRelease
+configureCMakeRelease[arm64-v8a]
+configureCMakeRelease[armeabi-v7a]
+configureCMakeRelease[x86]
+configureCMakeRelease[x86_64]
+configureCMakeRelWithDebInfo
+configureCMakeRelWithDebInfo[arm64-v8a]
+configureCMakeRelWithDebInfo[armeabi-v7a]
+configureCMakeRelWithDebInfo[x86]
+configureCMakeRelWithDebInfo[x86_64]
+configureReleaseDependencies
+consumeConfigAttr
+createDebugAndroidTestApkListingFileRedirect
+createDebugApkListingFileRedirect
+createDebugApksFromBundleListingFileRedirect
+createDebugBundleListingFileRedirect
+createDebugCompatibleScreenManifests
+createDebugOptimizedApkListingFileRedirect
+createDebugOptimizedApksFromBundleListingFileRedirect
+createDebugOptimizedBundleListingFileRedirect
+createDebugOptimizedCompatibleScreenManifests
+createMockableJar
+createReleaseApkListingFileRedirect
+createReleaseApksFromBundleListingFileRedirect
+createReleaseBundleListingFileRedirect
+createReleaseCompatibleScreenManifests
+desugarDebugAndroidTestFileDependencies
+desugarDebugFileDependencies
+desugarDebugOptimizedFileDependencies
+desugarReleaseFileDependencies
+dexBuilderDebug
+dexBuilderDebugAndroidTest
+dexBuilderDebugOptimized
+dexBuilderRelease
+expoDebugOptimizedOverrideMaxSdkConflicts
+expoDebugOverrideMaxSdkConflicts
+expoReleaseOverrideMaxSdkConflicts
+externalNativeBuildCleanDebug
+externalNativeBuildCleanDebugOptimized
+externalNativeBuildCleanRelease
+externalNativeBuildDebug
+externalNativeBuildDebugOptimized
+externalNativeBuildRelease
+extractApksForDebug
+extractApksForDebugOptimized
+extractApksForRelease
+extractApksFromBundleForDebug
+extractApksFromBundleForDebugOptimized
+extractApksFromBundleForRelease
+extractDebugNativeDebugMetadata
+extractDebugNativeSymbolTables
+extractDebugOptimizedNativeDebugMetadata
+extractDebugOptimizedNativeSymbolTables
+extractDeepLinksDebug
+extractDeepLinksDebugOptimized
+extractDeepLinksRelease
+extractProguardFiles
+extractReleaseNativeDebugMetadata
+extractReleaseNativeSymbolTables
+extractReleaseVersionControlInfo
+generateCodegenArtifactsFromSchema
+generateCodegenSchemaFromJavaScript
+generateDebugAndroidTestAssets
+generateDebugAndroidTestBuildConfig
+generateDebugAndroidTestLintModel
+generateDebugAndroidTestResources
+generateDebugAndroidTestResValues
+generateDebugAndroidTestSources
+generateDebugAssets
+generateDebugBuildConfig
+generateDebugFeatureMetadata
+generateDebugFeatureTransitiveDeps
+generateDebugLintModel
+generateDebugLintReportModel
+generateDebugManifestClass
+generateDebugOptimizedAssets
+generateDebugOptimizedBuildConfig
+generateDebugOptimizedFeatureMetadata
+generateDebugOptimizedFeatureTransitiveDeps
+generateDebugOptimizedLintModel
+generateDebugOptimizedLintReportModel
+generateDebugOptimizedManifestClass
+generateDebugOptimizedResources
+generateDebugOptimizedResValues
+generateDebugOptimizedSources
+generateDebugOptimizedUnitTestAssets
+generateDebugOptimizedUnitTestLintModel
+generateDebugOptimizedUnitTestResources
+generateDebugOptimizedUnitTestSources
+generateDebugResources
+generateDebugResValues
+generateDebugSources
+generateDebugUnitTestAssets
+generateDebugUnitTestLintModel
+generateDebugUnitTestResources
+generateDebugUnitTestSources
+generateJsonModelDebug
+generateJsonModelDebugOptimized
+generateJsonModelRelease
+generateReleaseAssets
+generateReleaseBuildConfig
+generateReleaseFeatureMetadata
+generateReleaseFeatureTransitiveDeps
+generateReleaseLintModel
+generateReleaseLintReportModel
+generateReleaseLintVitalReportModel
+generateReleaseManifestClass
+generateReleaseResources
+generateReleaseResValues
+generateReleaseSources
+generateReleaseUnitTestAssets
+generateReleaseUnitTestLintModel
+generateReleaseUnitTestResources
+generateReleaseUnitTestSources
+javaPreCompileDebug
+javaPreCompileDebugAndroidTest
+javaPreCompileDebugOptimized
+javaPreCompileDebugOptimizedUnitTest
+javaPreCompileDebugUnitTest
+javaPreCompileRelease
+javaPreCompileReleaseUnitTest
+lintAnalyzeDebug - Run lint analysis on the debug component
+lintAnalyzeDebugAndroidTest - Run lint analysis on the debugAndroidTest component
+lintAnalyzeDebugOptimized - Run lint analysis on the debugOptimized component
+lintAnalyzeDebugOptimizedUnitTest - Run lint analysis on the debugOptimizedUnitTest component
+lintAnalyzeDebugUnitTest - Run lint analysis on the debugUnitTest component
+lintAnalyzeRelease - Run lint analysis on the release component
+lintAnalyzeReleaseUnitTest - Run lint analysis on the releaseUnitTest component
+lintFixDebug - Fix lint on the debug variant
+lintFixDebugOptimized - Fix lint on the debugOptimized variant
+lintFixRelease - Fix lint on the release variant
+lintReportDebug - Run lint on the debug variant
+lintReportDebugOptimized - Run lint on the debugOptimized variant
+lintReportRelease - Run lint on the release variant
+lintVitalAnalyzeRelease - Run lint analysis with only the fatal issues enabled 
+lintVitalReportRelease - Run lint with only the fatal issues enabled on the release variant
+makeApkFromBundleForDebug
+makeApkFromBundleForDebugOptimized
+makeApkFromBundleForRelease
+mapDebugAndroidTestSourceSetPaths
+mapDebugOptimizedSourceSetPaths
+mapDebugSourceSetPaths
+mapReleaseSourceSetPaths
+mergeDebugAndroidTestAssets
+mergeDebugAndroidTestGeneratedProguardFiles
+mergeDebugAndroidTestGlobalSynthetics
+mergeDebugAndroidTestJavaResource
+mergeDebugAndroidTestJniLibFolders
+mergeDebugAndroidTestNativeLibs
+mergeDebugAndroidTestResources
+mergeDebugAndroidTestShaders
+mergeDebugArtProfile
+mergeDebugAssets
+mergeDebugGeneratedProguardFiles
+mergeDebugGlobalSynthetics
+mergeDebugJavaResource
+mergeDebugJniLibFolders
+mergeDebugNativeDebugMetadata
+mergeDebugNativeLibs
+mergeDebugOptimizedArtProfile
+mergeDebugOptimizedAssets
+mergeDebugOptimizedGeneratedProguardFiles
+mergeDebugOptimizedGlobalSynthetics
+mergeDebugOptimizedJavaResource
+mergeDebugOptimizedJniLibFolders
+mergeDebugOptimizedNativeDebugMetadata
+mergeDebugOptimizedNativeLibs
+mergeDebugOptimizedResources
+mergeDebugOptimizedShaders
+mergeDebugOptimizedStartupProfile
+mergeDebugResources
+mergeDebugShaders
+mergeDebugStartupProfile
+mergeDexRelease
+mergeExtDexDebug
+mergeExtDexDebugAndroidTest
+mergeExtDexDebugOptimized
+mergeExtDexRelease
+mergeLibDexDebug
+mergeLibDexDebugAndroidTest
+mergeLibDexDebugOptimized
+mergeProjectDexDebug
+mergeProjectDexDebugAndroidTest
+mergeProjectDexDebugOptimized
+mergeReleaseArtProfile
+mergeReleaseAssets
+mergeReleaseGeneratedProguardFiles
+mergeReleaseGlobalSynthetics
+mergeReleaseJavaResource
+mergeReleaseJniLibFolders
+mergeReleaseNativeDebugMetadata
+mergeReleaseNativeLibs
+mergeReleaseResources
+mergeReleaseShaders
+mergeReleaseStartupProfile
+optimizeReleaseResources
+packageDebug
+packageDebugAndroidTest
+packageDebugBundle
+packageDebugOptimized
+packageDebugOptimizedBundle
+packageDebugOptimizedResources
+packageDebugOptimizedUniversalApk
+packageDebugResources
+packageDebugUniversalApk
+packageRelease
+packageReleaseBundle
+packageReleaseResources
+packageReleaseUniversalApk
+parseDebugIntegrityConfig
+parseDebugLocalResources
+parseDebugOptimizedIntegrityConfig
+parseDebugOptimizedLocalResources
+parseReleaseIntegrityConfig
+parseReleaseLocalResources
+preBuild
+preDebugAndroidTestBuild
+preDebugBuild
+preDebugOptimizedBuild
+preDebugOptimizedUnitTestBuild
+preDebugUnitTestBuild
+prepareLintJarForPublish
+preReleaseBuild
+preReleaseUnitTestBuild
+processApplicationManifestDebugForBundle
+processApplicationManifestDebugOptimizedForBundle
+processApplicationManifestReleaseForBundle
+processDebugAndroidTestJavaRes
+processDebugAndroidTestManifest
+processDebugAndroidTestResources
+processDebugJavaRes
+processDebugMainManifest
+processDebugManifest
+processDebugManifestForPackage
+processDebugOptimizedJavaRes
+processDebugOptimizedMainManifest
+processDebugOptimizedManifest
+processDebugOptimizedManifestForPackage
+processDebugOptimizedResources
+processDebugOptimizedUnitTestJavaRes
+processDebugResources
+processDebugUnitTestJavaRes
+processManifestDebugForFeature
+processManifestDebugOptimizedForFeature
+processManifestReleaseForFeature
+processReleaseJavaRes
+processReleaseMainManifest
+processReleaseManifest
+processReleaseManifestForPackage
+processReleaseResources
+processReleaseUnitTestJavaRes
+produceDebugBundleIdeListingFile
+produceDebugOptimizedBundleIdeListingFile
+produceReleaseBundleIdeListingFile
+resolveConfigAttr
+sdkReleaseDependencyData
+signDebugBundle
+signDebugOptimizedBundle
+signingConfigWriterDebug
+signingConfigWriterDebugAndroidTest
+signingConfigWriterDebugOptimized
+signingConfigWriterRelease
+signReleaseBundle
+stripDebugAndroidTestDebugSymbols
+stripDebugDebugSymbols
+stripDebugOptimizedDebugSymbols
+stripReleaseDebugSymbols
+updateLintBaselineDebug - Update the lint baseline using the debug variant
+updateLintBaselineDebugOptimized - Update the lint baseline using the debugOptimized variant
+updateLintBaselineRelease - Update the lint baseline using the release variant
+validateSigningDebug
+validateSigningDebugAndroidTest
+validateSigningDebugOptimized
+validateSigningRelease
+writeDebugAndroidTestSigningConfigVersions
+writeDebugApplicationId
+writeDebugAppMetadata
+writeDebugModuleMetadata
+writeDebugOptimizedApplicationId
+writeDebugOptimizedAppMetadata
+writeDebugOptimizedModuleMetadata
+writeDebugOptimizedSigningConfigVersions
+writeDebugSigningConfigVersions
+writeReleaseApplicationId
+writeReleaseAppMetadata
+writeReleaseModuleMetadata
+writeReleaseSigningConfigVersions
+zipApksForDebug
+zipApksForDebugOptimized
+zipApksForRelease
+
+Rules
+-----
+Pattern: clean<TaskName>: Cleans the output files of a task.
+Pattern: build<ConfigurationName>: Assembles the artifacts of a configuration.
+
+[Incubating] Problems report is available at: file:///Users/leonard/workspace/workspace_move/reading-app-rn/android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.0.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1s
+29 actionable tasks: 1 executed, 28 up-to-date
