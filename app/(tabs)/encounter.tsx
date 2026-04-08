@@ -43,7 +43,7 @@ const MORE_GENRES: GenreCard[] = [
 ];
 
 export default function EncounterScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<CreateMode>('free');
   const [template, setTemplate] = useState<TemplateMode>('adventure');
@@ -61,6 +61,7 @@ export default function EncounterScreen() {
   const inspirationLength = inspiration.length;
   const modeTitle =
     mode === 'free' ? t('create.headerModeFreeTitle') : t('create.headerModeFixedTitle');
+  const isZh = i18n.language.toLowerCase().startsWith('zh');
 
   const selectedGenreText = t('create.selectedGenreCount', {
     count: selectedGenreIds.length,
@@ -99,7 +100,7 @@ export default function EncounterScreen() {
     const inspirationMissing = inspiration.trim().length === 0;
     const goalMissing = mode === 'fixed' && endingGoal.trim().length === 0;
     setShowInspirationError(inspirationMissing);
-    setShowGoalError(goalMissing);
+    setShowGoalError(mode === 'fixed' ? goalMissing : false);
     if (inspirationMissing || goalMissing) return;
     showGlobalNotice(t('create.generatePending'));
   }
@@ -232,7 +233,7 @@ export default function EncounterScreen() {
                 <Text style={styles.sectionTitle}>{t('create.endingGoalLabel')}</Text>
                 <Text style={styles.goalHint}>{t('create.endingGoalHint')}</Text>
               </View>
-              <View style={[styles.goalInputCard, showGoalError && styles.errorBorder]}>
+              <View style={[styles.goalInputCard, showGoalError && styles.goalInputCardError]}>
                 <TextInput
                   value={endingGoal}
                   onChangeText={(text) => {
@@ -246,9 +247,9 @@ export default function EncounterScreen() {
                   placeholderTextColor="#9CA3AF"
                 />
               </View>
-              {showInspirationError ? (
+              {/* {showInspirationError ? (
                 <Text style={styles.errorText}>{t('create.inspirationRequiredForFixed')}</Text>
-              ) : null}
+              ) : null} */}
               {showGoalError ? (
                 <Text style={styles.errorText}>{t('create.endingGoalRequired')}</Text>
               ) : null}
@@ -272,7 +273,9 @@ export default function EncounterScreen() {
           <View style={[styles.modeDropdownCard, { top: insets.top + 54 }]}>
             <Pressable style={styles.modeOption} onPress={() => handleModePick('free')}>
               <Text style={[styles.modeOptionText, mode === 'free' && styles.modeOptionTextActive]}>
-                {mode === 'free' ? t('create.modeFreeCurrent') : t('create.modeFree')}
+                {mode === 'free'
+                  ? `${t('create.modeFree')}${isZh ? '（当前）' : ' (Current)'}`
+                  : t('create.modeFree')}
               </Text>
             </Pressable>
             <Pressable style={styles.modeOption} onPress={() => handleModePick('fixed')}>
@@ -502,6 +505,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     minHeight: 67,
     padding: 8,
+  },
+  goalInputCardError: {
+    borderColor: '#EF4444',
   },
   goalInput: { color: '#111827', fontSize: 10, lineHeight: 12, minHeight: 50, padding: 0 },
   generateButton: {
