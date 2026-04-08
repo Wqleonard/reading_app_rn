@@ -50,12 +50,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="encounter"
         options={{
-          title: t('tabs.encounter'),
+          title: t('tabs.create'),
           tabBarActiveTintColor: '#ffffff',
           tabBarInactiveTintColor: 'rgba(255,255,255,0.5)',
           tabBarStyle: darkTabBarStyle,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="sparkles" color={color} size={size} />
+            <Ionicons name="create-outline" color={color} size={size} />
           ),
         }}
       />
