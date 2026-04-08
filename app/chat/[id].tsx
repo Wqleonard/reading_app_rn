@@ -4,6 +4,8 @@ import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Markdown from 'react-native-markdown-display';
 import {
+  Animated,
+  Easing,
   type ImageSourcePropType,
   Pressable,
   StyleSheet,
@@ -75,6 +77,50 @@ function buildAiHistory(messages: ChatUiMessage[], characterId: string): ChatHis
     })
     .filter((item): item is ChatHistoryItem => item !== null)
     .slice(-40);
+}
+
+function TypingDotsBubble() {
+  const dotOpacities = useMemo(
+    () => [new Animated.Value(0.35), new Animated.Value(0.35), new Animated.Value(0.35)],
+    []
+  );
+
+  useEffect(() => {
+    const animations = dotOpacities.map((opacity, index) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(index * 140),
+          Animated.timing(opacity, {
+            toValue: 1,
+            duration: 320,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacity, {
+            toValue: 0.35,
+            duration: 320,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.delay(220),
+        ])
+      )
+    );
+    animations.forEach((animation) => animation.start());
+    return () => {
+      animations.forEach((animation) => animation.stop());
+    };
+  }, [dotOpacities]);
+
+  return (
+    <View style={styles.typingBubble}>
+      <View style={styles.typingDotsRow}>
+        {dotOpacities.map((opacity, index) => (
+          <Animated.View key={`typing_dot_${index}`} style={[styles.typingDot, { opacity }]} />
+        ))}
+      </View>
+    </View>
+  );
 }
 
 export default function CharacterChatScreen() {
@@ -386,7 +432,15 @@ export default function CharacterChatScreen() {
         listProps={{ keyboardShouldPersistTaps: 'handled' }}
         renderBubble={(props: BubbleProps<IMessage>) => {
           const message = props.currentMessage as ChatUiMessage;
+          const isSentByMe = String(message?.user?._id ?? '') === USER_ID;
+          const isTypingPlaceholder =
+            !isSentByMe &&
+            message?.statusTag === 'sending' &&
+            String(message?.text ?? '').trim().length === 0;
           const isError = message?.statusTag === 'error';
+          if (isTypingPlaceholder) {
+            return <TypingDotsBubble />;
+          }
           return (
             <Bubble
               {...props}
@@ -548,6 +602,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef2f2',
     borderWidth: 1,
     borderColor: '#fecaca',
+  },
+  typingBubble: {
+    alignSelf: 'flex-start',
+    minWidth: 56,
+    height: 36,
+    borderRadius: 16,
+    borderTopLeftRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+  },
+  typingDotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  typingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#9ca3af',
   },
   bubbleTextLeft: {
     color: '#1f2937',
