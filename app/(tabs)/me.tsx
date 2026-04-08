@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -12,6 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppNavigator } from '@/src/navigation/appNavigator';
+import { showGlobalNotice } from '@/src/shared/notice/noticeCenter';
 
 type MeTab = 0 | 1 | 2;
 
@@ -130,7 +130,7 @@ export default function MeScreen() {
       AppNavigator.toCharacterDetail(item.id);
       return;
     }
-    Alert.alert('', t('me.characterLocked'));
+    showGlobalNotice(t('me.characterLocked'));
   }
 
   function gotoEncounter() {
@@ -146,7 +146,7 @@ export default function MeScreen() {
         <View style={styles.profileInfo}>
           <View style={styles.profileNameRow}>
             <Text style={styles.profileName}>{t('me.userName')}</Text>
-            <Pressable onPress={() => Alert.alert('', t('me.editPending'))} hitSlop={10}>
+            <Pressable onPress={() => showGlobalNotice(t('me.editPending'))} hitSlop={10}>
               <Ionicons name="create-outline" size={18} color="#9ca3af" />
             </Pressable>
           </View>
@@ -263,7 +263,7 @@ function EmptyTab({ message }: { message: string }) {
       <Text style={styles.emptyText}>{message}</Text>
       <Pressable
         style={styles.testButton}
-        onPress={() => Alert.alert('', t('me.quickTestPending'))}
+        onPress={() => showGlobalNotice(t('me.quickTestPending'))}
       >
         <Ionicons name="git-branch-outline" size={16} color="#ffffff" />
         <Text style={styles.testButtonText}>{t('me.quickTest')}</Text>

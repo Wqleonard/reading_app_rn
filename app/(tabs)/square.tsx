@@ -32,7 +32,6 @@ const SQUARE_COVER_2 = require('../../assets/story/square/story_cover_2.png');
 const SQUARE_COVER_3 = require('../../assets/story/square/story_cover_3.png');
 const SQUARE_COVER_4 = require('../../assets/story/square/story_cover_4.png');
 const STORY_MAIN_COVER = require('../../assets/story/cover.jpg');
-const FEED_DEFAULT_STORY_ID = 'story_001';
 
 type SquareCategory = {
   id: string;
@@ -314,12 +313,7 @@ export default function SquareScreen() {
   }
 
   function openStoryDetail(storyId: string) {
-    // TODO(story-feed): when multi-story + UGC feed is enabled,
-    // route by the clicked card's actual `storyId`.
-    // Currently only one complete story detail exists in RN, so all entries
-    // point to the same detail page for consistent QA.
-    void storyId;
-    AppNavigator.toStoryDetail(FEED_DEFAULT_STORY_ID);
+    AppNavigator.toStoryDetail(storyId);
   }
 
   function renderStoryCard(story: SquareStory): ReactNode {

@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import {
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -13,6 +12,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppNavigator } from '@/src/navigation/appNavigator';
+import { showGlobalNotice } from '@/src/shared/notice/noticeCenter';
 
 type SearchStory = {
   id: string;
@@ -200,11 +200,11 @@ export default function SearchScreen() {
   );
 
   function performSearch() {
-    Alert.alert('', t('search.notOpen'));
+    showGlobalNotice(t('search.notOpen'));
   }
 
   function goToStoryDetail(storyId: string) {
-    Alert.alert('', t('search.gotoStory', { id: storyId }));
+    AppNavigator.toStoryDetail(storyId);
   }
 
   function goToCharacterDetail(characterId: string) {

@@ -4,7 +4,6 @@ import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   Image,
   Modal,
   Pressable,
@@ -28,6 +27,7 @@ import { resolveStoryImageSource } from '@/src/utils/storyImageResolver';
 import { readingProgressRepository } from '@/src/storage/db/repositories/readingProgressRepository';
 import type { StoryComment } from '@/src/data/story/types';
 import { AppNavigator } from '@/src/navigation/appNavigator';
+import { showGlobalNotice } from '@/src/shared/notice/noticeCenter';
 
 function parseVisitedNodeIds(raw: string | null | undefined): string[] {
   if (!raw) return [];
@@ -209,7 +209,7 @@ export default function StoryDetailScreen() {
 
   function openCharacter(character: StoryDetailCharacter) {
     if (!character.unlocked) {
-      Alert.alert('', t('storyDetail.characterLockedTip'));
+      showGlobalNotice(t('storyDetail.characterLockedTip'));
       return;
     }
     AppNavigator.toCharacterDetail(character.id);
@@ -242,7 +242,7 @@ export default function StoryDetailScreen() {
     setComments((prev) => [newComment, ...prev]);
     setCommentInputVisible(false);
     setPendingComment('');
-    Alert.alert('', t('storyDetail.commentSent'));
+    showGlobalNotice(t('storyDetail.commentSent'));
   }
 
   if (!story) {
@@ -335,7 +335,10 @@ export default function StoryDetailScreen() {
                 color={isBookmarked ? '#fbbf24' : '#6b7280'}
               />
             </Pressable>
-            <Pressable onPress={() => Alert.alert('', t('storyDetail.sharePending'))} style={styles.actionIconButton}>
+            <Pressable
+              onPress={() => showGlobalNotice(t('storyDetail.sharePending'))}
+              style={styles.actionIconButton}
+            >
               <Ionicons name="share-social-outline" size={18} color="#6b7280" />
             </Pressable>
           </View>
@@ -487,7 +490,7 @@ export default function StoryDetailScreen() {
                   <Text style={styles.commentContentText}>{comment.content}</Text>
                   <View style={styles.commentBottomRow}>
                     <Text style={styles.commentTimeText}>{comment.time}</Text>
-                    <Pressable onPress={() => Alert.alert('', t('storyDetail.replyPending'))}>
+                    <Pressable onPress={() => showGlobalNotice(t('storyDetail.replyPending'))}>
                       <Text style={styles.commentReplyText}>· {t('storyDetail.reply')}</Text>
                     </Pressable>
                   </View>

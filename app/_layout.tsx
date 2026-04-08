@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import '@/src/i18n';
+import GlobalNoticeHost from '@/src/shared/notice/GlobalNoticeHost';
 import { useAppStore } from '@/src/state/appStore';
 import { initDb } from '@/src/storage/db/client';
 
@@ -67,15 +68,18 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="search/index" options={{ headerShown: false }} />
-        <Stack.Screen name="story/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="reader/[storyId]" options={{ headerShown: false }} />
-        <Stack.Screen name="character/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
+      <>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="search/index" options={{ headerShown: false }} />
+          <Stack.Screen name="story/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="reader/[storyId]" options={{ headerShown: false }} />
+          <Stack.Screen name="character/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        </Stack>
+        <GlobalNoticeHost />
+      </>
     </ThemeProvider>
   );
 }

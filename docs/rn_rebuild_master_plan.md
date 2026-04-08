@@ -111,7 +111,7 @@ reading-app-rn/
 | `card_swiper` | 邂逅卡片轮播 | `react-native-deck-swiper`（快）/ 自定义 Reanimated | 看设计还原度 |
 | `flutter_staggered_grid_view` | 瀑布流 | `@shopify/flash-list` + 双列布局 | 高性能列表 |
 | `graphview` + 自绘分支图 | 分支图 demo/历史 | `react-native-svg` + `react-native-gesture-handler` + `reanimated` | 现有 Flutter 已主用自绘，RN 建议自研 |
-| `flutter_chat_ui/core` | 聊天页 | `@flyerhq/react-native-chat-ui` 或 GiftedChat | 推荐先用 FlyerHQ 体系 |
+| `flutter_chat_ui/core` | 聊天页 | `react-native-gifted-chat` | 已落地，后续在其上扩展多模态与流式状态机 |
 | `flutter_svg` | SVG 资源 | `react-native-svg` + `react-native-svg-transformer` | 常规方案 |
 | `intl` / `flutter_localizations` | 双语 | `i18next` + `react-i18next` + `expo-localization` | 必须从 Day1 接入 |
 
@@ -322,14 +322,31 @@ reading-app-rn/
 - 当前进展（已完成）：
   - `app/chat/[id].tsx` 已从占位页迁移到可用首版，接入 `react-native-gifted-chat` 并完成基础样式对齐
   - 已支持系统介绍卡片、自定义消息气泡、发送状态（sending/sent/error）与聊天记录持久化
-  - 已接入阿里百炼 DashScope 流式回复（优先文本/Markdown）
+  - 已接入阿里百炼 DashScope 流式回复（优先文本/Markdown），并补齐 RN 端 stream fallback
   - 角色详情页聊天入口已切换到统一导航 `AppNavigator.toCharacterChat`
+  - 聊天等待态已从“空白气泡”优化为“3 点轻微透明度动画”
 - 当前待优化（持续进行）：
   - 聊天页视觉细节仍需继续对齐 Flutter（间距、头像/气泡细节、输入区交互）
-  - Markdown 渲染链路需稳定化（Expo 运行时兼容与依赖治理）
+  - Markdown 渲染链路需持续稳定化（Expo 运行时兼容与依赖治理）
   - 消息类型扩展（图片/文件/富内容）与后续自有 API 适配层
 - 验收：
   - 可稳定连续对话，重进可恢复历史
+
+## Phase 6.5 - 遗漏项清理（除邂逅出卡页）
+- 状态：`doing`
+- 范围说明：
+  - 邂逅出卡页相关细节优化按“暂缓”处理，不纳入本轮遗漏清理。
+- 当前进展（已完成）：
+  - 已新增全局通知条（Snackbar-like）：自动展示后消失、无需点击，统一替代占位 `Alert`
+  - 搜索页：保留“搜索暂未开放”提示但改为通知条；故事卡点击已切换为真实故事详情跳转
+  - 故事详情页：分享/评论回复占位提示已切换为通知条
+  - 我的页：编辑资料/快速测试/未解锁角色提示已切换为通知条
+  - 广场页：已移除固定故事兜底，按点击卡片 `storyId` 做真实详情路由
+- 当前待补齐：
+  - 搜索真实能力（关键词检索与结果页）仍未接入，当前为“暂未开放”通知
+  - 多故事详情数据完备度（除 `story_001` 外）仍需持续补齐
+- 验收：
+  - 除“邂逅出卡页暂缓”外，不再出现“占位提示替代真实能力”的核心流程断点
 
 ## Phase 7 - 性能与回归
 - 状态：`todo`
@@ -370,9 +387,10 @@ reading-app-rn/
 | T-004 | Tabs 四模块首版 | done | 推荐状态机 + 广场分类/继续阅读 + 邂逅三态 + 我的三标签 |
 | T-005 | 故事详情 + 角色详情 | done | 已完成故事评论区、角色作品列表、互动/纯享阅读入口参数化；并按 Flutter 结构补齐 Story 详情页（封面区/标签操作/角色区/分支图/评论区/底部双入口）；角色详情页已按 Flutter 对齐重构（真实+虚拟角色统一渲染、顶部栏/主视觉/作品区/底部操作），当前阶段暂告一段落 |
 | T-006 | 阅读器核心功能 | done | 已完成连续渲染/选择跳转/进度恢复与回写/设置面板（滑轨/主题联动）持久化、亮度蒙层、高光图点击弹层+收录设背景（含本地资源迁移）、分支图面板自绘与回滚规则对齐、角色弹层（底部一体化容器+横向角色卡+解锁态+点击规则）对齐；分支选择 custom-input 已限定为 UGC 展示；高光背景图展示完整性问题已修复 |
-| T-007 | 聊天与 AI | doing | 聊天页已完成首版重构并打通跳转与流式回复：`react-native-gifted-chat`、消息状态与DB持久化、自定义系统卡片、DashScope 流式接入；当前继续优化 UI 还原度与 Markdown 稳定性，随后补齐图片/文件等多模态消息与自有 API 适配 |
+| T-007 | 聊天与 AI | doing | 聊天页已完成首版重构并打通跳转与流式回复：`react-native-gifted-chat`、消息状态与DB持久化、自定义系统卡片、DashScope（含 stream fallback）接入、等待态动画；当前继续优化 UI 还原度与多模态消息扩展 |
 | T-008 | 性能与回归 | todo | Phase 7 |
 | T-009 | Tabs 视觉与交互对齐专项 | doing | 推荐 Tab 已按 Flutter 对齐（视频状态机/黑色底栏联动/自动播放修复）；广场 Tab 已补齐安全区与统一跳转策略，搜索页（热门故事/热门角色）已完成首版 1:1 对齐迁移；我的 Tab 已完成首版 1:1 迁移（顶部用户区/三标签/记录卡/角色卡/更多邂逅）；角色详情相关入口已切换为真实跳转 |
+| T-010 | 遗漏占位清理（除邂逅出卡页） | doing | 已完成首轮替换：全局通知条落地，搜索/故事详情/我的占位 Alert 已切换，广场详情路由已切到真实 `storyId`；剩余为搜索真实能力与多故事详情数据补齐 |
 
 ---
 
@@ -381,7 +399,8 @@ reading-app-rn/
 下次直接按以下方式继续：
 1. 先读本文件：`reading-app-rn/docs/rn_rebuild_master_plan.md`
 2. 当前优先顺序：
-   - 继续 `T-007`：优先完成聊天页 UI 细节对齐与 Markdown 稳定性，再推进多模态消息扩展（图片/文件/富内容）与流式状态机
+   - 推进 `T-010`：补齐搜索真实能力与多故事详情数据，继续清理占位能力
+   - 继续 `T-007`：收敛聊天页剩余 UI 细节并推进多模态消息扩展
 3. 每完成一个子任务，更新：
    - 任务状态表
    - 风险与问题记录
@@ -393,7 +412,7 @@ reading-app-rn/
 
 > 请先阅读 `reading-app-rn/docs/rn_rebuild_master_plan.md`，继续当前重构：  
 > 1) 继续优化聊天页 `app/chat/[id].tsx`，对齐 Flutter `reading_app/lib/pages/character_chat` 的 UI、交互和安全区；  
-> 2) 稳定 Markdown 渲染链路并完善流式状态机；  
+> 2) 推进“遗漏占位清理（除邂逅出卡页）”：搜索页/故事详情页/我的页/广场UGC路由；  
 > 3) 所有新增文案保持中英文双语，完成后更新 master plan 的任务状态与备注。
 
 ---
