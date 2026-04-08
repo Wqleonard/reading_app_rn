@@ -169,7 +169,7 @@ export default function EncounterScreen() {
                     </Pressable>
                   );
                 })}
-                <Pressable style={styles.genreChip} onPress={() => setShowMoreGenres(true)}>
+                <Pressable style={[styles.genreChip, styles.genreChipMore]} onPress={() => setShowMoreGenres(true)}>
                   <Text style={styles.genreChipText}>{t('create.moreGenres')}</Text>
                 </Pressable>
               </View>
@@ -459,6 +459,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  genreChipMore: {
+    backgroundColor: '#fff',
   },
   genreChipSelected: { backgroundColor: '#111827', borderColor: '#111827' },
   genreChipText: { color: '#4B5563', fontSize: 13, fontWeight: '500' },
